@@ -28,7 +28,7 @@ defmodule AppWeb.VideoLive.Form do
           <image href={@frame_path} />
           <text
             :for={ann <- @annotations}
-            :if={@control_form[:show_bb].value == true}
+            :if={@control_form[:show_bb].value}
             x={ann.bb_x1}
             y={ann.bb_y1 - 10}
             font-family="Arial"
@@ -39,7 +39,7 @@ defmodule AppWeb.VideoLive.Form do
           </text>
           <rect
             :for={ann <- @annotations}
-            :if={@control_form[:show_bb].value == true}
+            :if={@control_form[:show_bb].value}
             width={ann.bb_x2 - ann.bb_x1}
             height={ann.bb_y2 - ann.bb_y1}
             x={ann.bb_x1}
@@ -48,6 +48,15 @@ defmodule AppWeb.VideoLive.Form do
             stroke={@colors[ann.mouse_id]}
             stroke-width="2"
           />
+
+          <%= if @control_form[:show_keypoints].value do %>
+            <%= for ann <- @annotations do %>
+              <circle r="3" cx={ann.nose_x} cy={ann.nose_y} fill="yellow" />
+              <circle r="3" cx={ann.earL_x} cy={ann.earL_y} fill="orchid" />
+              <circle r="3" cx={ann.earR_x} cy={ann.earR_y} fill="lightpink" />
+              <circle r="3" cx={ann.tailB_x} cy={ann.tailB_y} fill="orange" />
+            <% end %>
+          <% end %>
         </svg>
 
         <footer>
@@ -65,7 +74,7 @@ defmodule AppWeb.VideoLive.Form do
      |> assign(:return_to, return_to(params["return_to"]))
      |> assign(:colors, %{
        1 => "red",
-       2 => "yellow",
+       2 => "gold",
        3 => "lawngreen",
        4 => "cyan",
        5 => "magenta"
