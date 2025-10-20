@@ -5,7 +5,7 @@ defmodule App.Repo.Migrations.CreateAnnotations do
     create table(:annotations) do
       add :video_id, references(:videos, on_delete: :delete_all), null: false
 
-      add :frame_id, :integer
+      add :frame, :integer
       add :mouse_id, :integer
 
       add :bb_x1, :float
@@ -28,6 +28,6 @@ defmodule App.Repo.Migrations.CreateAnnotations do
       timestamps(type: :utc_datetime)
     end
 
-    create unique_index(:annotations, [:video_id, :frame_id, :mouse_id])
+    create unique_index(:annotations, [:video_id, :frame, :mouse_id])
   end
 end

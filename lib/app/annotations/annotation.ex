@@ -4,7 +4,7 @@ defmodule App.Annotations.Annotation do
 
   schema "annotations" do
     belongs_to :video, App.Videos.Video
-    field :frame_id, :integer
+    field :frame, :integer
     field :mouse_id, :integer
     field :bb_x1, :float
     field :bb_y1, :float
@@ -27,7 +27,7 @@ defmodule App.Annotations.Annotation do
     annotation
     |> cast(attrs, [
       :video_id,
-      :frame_id,
+      :frame,
       :mouse_id,
       :bb_x1,
       :bb_y1,

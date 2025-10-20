@@ -50,7 +50,7 @@ defmodule Mix.Tasks.ImportAnnotations do
       {:ok, _ann} =
         %Annotation{
           video_id: video.id,
-          frame_id: frame,
+          frame: frame,
           mouse_id: String.to_integer(mouse_id),
           bb_x1: frame_data[mouse_id]["bbox"]["x1"],
           bb_y1: frame_data[mouse_id]["bbox"]["y1"],
