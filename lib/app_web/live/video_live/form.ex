@@ -14,39 +14,45 @@ defmodule AppWeb.VideoLive.Form do
           {@video.name}
         </.header>
 
-        <.form for={@form} id="video-form" phx-change="validate" phx-submit="save">
-          <.input field={@form[:name]} type="text" label="Name" />
-          <p>Frame: {@frame}</p>
-          <p>Time: {Time.from_seconds_after_midnight(Integer.floor_div(@frame, 15))}</p>
-
-          <svg width="640" height="480" xmlns="http://www.w3.org/2000/svg">
-            <image href={@frame_path} />
-            <text
-              :for={ann <- @annotations}
-              x={ann.bb_x1}
-              y={ann.bb_y1 - 10}
-              font-family="Arial"
-              font-size="16"
-              fill={@colors[ann.mouse_id]}
-            >
-              {ann.mouse_id}
-            </text>
-            <rect
-              :for={ann <- @annotations}
-              width={ann.bb_x2 - ann.bb_x1}
-              height={ann.bb_y2 - ann.bb_y1}
-              x={ann.bb_x1}
-              y={ann.bb_y1}
-              fill="none"
-              stroke={@colors[ann.mouse_id]}
-              stroke-width="2"
-            />
-          </svg>
-
-          <footer>
-            <.button navigate={return_path(@return_to, @video)}>Back</.button>
-          </footer>
+        <.form for={@control_form} id="video-form" phx-change="control_change">
+          <div class="flex gap-4">
+            <.input field={@control_form[:show_bb]} type="toggle" label="Show bounding boxes" />
+            <.input field={@control_form[:show_keypoints]} type="toggle" label="Show keypoints" />
+          </div>
+          <br />
         </.form>
+        <p>Frame: {@frame}</p>
+        <p>Time: {Time.from_seconds_after_midnight(Integer.floor_div(@frame, 15))}</p>
+
+        <svg width="640" height="480" xmlns="http://www.w3.org/2000/svg">
+          <image href={@frame_path} />
+          <text
+            :for={ann <- @annotations}
+            :if={@control_form[:show_bb].value == true}
+            x={ann.bb_x1}
+            y={ann.bb_y1 - 10}
+            font-family="Arial"
+            font-size="16"
+            fill={@colors[ann.mouse_id]}
+          >
+            {ann.mouse_id}
+          </text>
+          <rect
+            :for={ann <- @annotations}
+            :if={@control_form[:show_bb].value == true}
+            width={ann.bb_x2 - ann.bb_x1}
+            height={ann.bb_y2 - ann.bb_y1}
+            x={ann.bb_x1}
+            y={ann.bb_y1}
+            fill="none"
+            stroke={@colors[ann.mouse_id]}
+            stroke-width="2"
+          />
+        </svg>
+
+        <footer>
+          <.button navigate={return_path(@return_to, @video)}>Back</.button>
+        </footer>
       </div>
     </Layouts.app>
     """
@@ -64,6 +70,7 @@ defmodule AppWeb.VideoLive.Form do
        4 => "cyan",
        5 => "magenta"
      })
+     |> assign_control_form(%{})
      |> apply_action(socket.assigns.live_action, params)}
   end
 
@@ -77,7 +84,6 @@ defmodule AppWeb.VideoLive.Form do
     |> assign(:video, video)
     |> assign(:annotations, [])
     |> assign_frame(1)
-    |> assign(:form, to_form(Videos.change_video(video)))
   end
 
   defp apply_action(socket, :new, _params) do
@@ -90,9 +96,8 @@ defmodule AppWeb.VideoLive.Form do
   end
 
   @impl true
-  def handle_event("validate", %{"video" => video_params}, socket) do
-    changeset = Videos.change_video(socket.assigns.video, video_params)
-    {:noreply, assign(socket, form: to_form(changeset, action: :validate))}
+  def handle_event("control_change", params, socket) do
+    {:noreply, assign_control_form(socket, params)}
   end
 
   @impl Phoenix.LiveView
@@ -171,5 +176,16 @@ defmodule AppWeb.VideoLive.Form do
 
     socket
     |> assign_frame(new_frame)
+  end
+
+  defp assign_control_form(socket, params) do
+    assign(socket,
+      control_form:
+        to_form(%{
+          "show_bb" => Map.get(params, "show_bb", "true") |> String.to_existing_atom(),
+          "show_keypoints" =>
+            Map.get(params, "show_keypoints", "true") |> String.to_existing_atom()
+        })
+    )
   end
 end

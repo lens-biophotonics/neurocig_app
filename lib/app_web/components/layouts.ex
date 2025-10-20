@@ -57,7 +57,7 @@ defmodule AppWeb.Layouts do
       </div>
     </main>
 
-    <.flash_group flash={@flash} />
+    <%!-- <.flash_group flash={@flash} /> --%>
     """
   end
 

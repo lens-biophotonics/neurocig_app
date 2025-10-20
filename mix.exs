@@ -67,7 +67,8 @@ defmodule App.MixProject do
       {:dns_cluster, "~> 0.2.0"},
       {:bandit, "~> 1.5"},
       # my deps
-      {:tqdm, github: "sevenmind/tqdm_elixir"}
+      {:tqdm, github: "sevenmind/tqdm_elixir"},
+      {:daisy_ui_components, "~> 0.9"}
     ]
   end
 
