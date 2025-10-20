@@ -9,21 +9,57 @@ defmodule AppWeb.VideoLive.Form do
   def render(assigns) do
     ~H"""
     <Layouts.app flash={@flash}>
-      <div phx-window-keydown="key_event">
-        <.header>
-          {@video.name}
-        </.header>
+      <.header>
+        {@video.name}
+      </.header>
 
-        <.form for={@control_form} id="video-form" phx-change="control_change">
-          <div class="flex gap-4">
-            <.input field={@control_form[:show_bb]} type="toggle" label="Show bounding boxes" />
-            <.input field={@control_form[:show_keypoints]} type="toggle" label="Show keypoints" />
-          </div>
-          <br />
-        </.form>
-        <p>Frame: {@frame}</p>
-        <p>Time: {Time.from_seconds_after_midnight(Integer.floor_div(@frame, 15))}</p>
+      <.form for={@control_form} id="video-form" phx-change="control_change">
+        <div class="flex gap-4">
+          <.input field={@control_form[:show_bb]} type="toggle" label="Show bounding boxes" />
+          <.input field={@control_form[:show_keypoints]} type="toggle" label="Show keypoints" />
+        </div>
+        <div class="flex gap-4">
+          <.input
+            field={@control_form[:go_to_frame]}
+            type="number"
+            label="Go to frame"
+            phx-debounce="800"
+          />
+          <.fieldset class="mt-2">
+            <.fieldset_label>&nbsp;</.fieldset_label>
+            <.button type="button" name="go_to_frame_button" phx-click={JS.dispatch("change")}>
+              Go to frame
+            </.button>
+          </.fieldset>
+        </div>
+        <div class="flex gap-4">
+          <.input
+            type="time"
+            field={@control_form[:go_to_time]}
+            step="20"
+            label="Go to time"
+            phx-debounce="800"
+          />
+          <.fieldset class="mt-2">
+            <.fieldset_label>&nbsp;</.fieldset_label>
+            <.button type="button" name="go_to_frame_button" phx-click={JS.dispatch("change")}>
+              Go to time
+            </.button>
+          </.fieldset>
+        </div>
+      </.form>
+      <br />
 
+      <p>Frame: {@frame}</p>
+      <p>Time: {Time.from_seconds_after_midnight(Integer.floor_div(@frame, 15))}</p>
+      <.header>
+        <:subtitle>
+          To move frame by frame, click on the image then use the keyboard arrow keys.
+          <kbd class="kbd">◀︎</kbd>
+          <kbd class="kbd">▶︎</kbd>
+        </:subtitle>
+      </.header>
+      <div tabindex="-1" phx-keydown="key_event">
         <svg width="640" height="480" xmlns="http://www.w3.org/2000/svg">
           <image href={@frame_path} />
           <text
@@ -58,11 +94,10 @@ defmodule AppWeb.VideoLive.Form do
             <% end %>
           <% end %>
         </svg>
-
-        <footer>
-          <.button navigate={return_path(@return_to, @video)}>Back</.button>
-        </footer>
       </div>
+      <footer>
+        <.button navigate={return_path(@return_to, @video)}>Back</.button>
+      </footer>
     </Layouts.app>
     """
   end
@@ -104,7 +139,16 @@ defmodule AppWeb.VideoLive.Form do
     |> assign(:form, to_form(Videos.change_video(video)))
   end
 
-  @impl true
+  @impl Phoenix.LiveView
+  def handle_event(
+        "control_change",
+        %{"_target" => ["go_to_frame_button"], "go_to_frame" => frame},
+        socket
+      ) do
+    {:noreply, assign_frame(socket, String.to_integer(frame))}
+  end
+
+  @impl Phoenix.LiveView
   def handle_event("control_change", params, socket) do
     {:noreply, assign_control_form(socket, params)}
   end
