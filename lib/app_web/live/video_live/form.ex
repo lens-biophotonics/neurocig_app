@@ -14,7 +14,9 @@ defmodule AppWeb.VideoLive.Form do
         </.header>
 
         <.form for={@form} id="video-form" phx-change="validate" phx-submit="save">
-          <.input field={@form[:name]} type="text" label="Name" /> Frame: {@frame}
+          <.input field={@form[:name]} type="text" label="Name" />
+          <p>Frame: {@frame}</p>
+          <p>Time: {Time.from_seconds_after_midnight(Integer.floor_div(@frame, 15))}</p>
 
           <img src={@frame_path} />
 
