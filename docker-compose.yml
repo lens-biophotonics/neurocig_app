@@ -1,0 +1,25 @@
+services:
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_PASSWORD: my-secret-pw
+      POSTGRES_USER: neurocig
+    ports:
+      - '127.0.0.1:5432:5432'
+    volumes:
+      - dbvolume:/var/lib/postgresql/data
+
+  pgadmin:
+    depends_on:
+      - db
+    image: dpage/pgadmin4
+    environment:
+      PGADMIN_DEFAULT_EMAIL: g.mazzamuto@gmail.com
+      PGADMIN_DEFAULT_PASSWORD: my-secret-pw
+      PGADMIN_LISTEN_PORT: 1080
+      PGADMIN_DISABLE_POSTFIX: 'true'
+    ports:
+      - '127.0.0.1:8888:1080'
+
+volumes:
+  dbvolume:
