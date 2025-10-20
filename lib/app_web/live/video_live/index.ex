@@ -7,19 +7,10 @@ defmodule AppWeb.VideoLive.Index do
   def render(assigns) do
     ~H"""
     <Layouts.app flash={@flash}>
-      <.header>
-        Listing Videos
-        <:actions>
-          <.button variant="primary" navigate={~p"/videos/new"}>
-            <.icon name="hero-plus" /> New Video
-          </.button>
-        </:actions>
-      </.header>
-
       <.table
         id="videos"
         rows={@streams.videos}
-        row_click={fn {_id, video} -> JS.navigate(~p"/videos/#{video}") end}
+        row_click={fn {_id, video} -> JS.navigate(~p"/videos/#{video}/edit") end}
       >
         <:col :let={{_id, video}} label="Name">{video.name}</:col>
         <:action :let={{_id, video}}>

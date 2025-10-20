@@ -20,8 +20,6 @@ defmodule AppWeb.Router do
     get "/", PageController, :home
 
     live "/videos", VideoLive.Index, :index
-    live "/videos/new", VideoLive.Form, :new
-    live "/videos/:id", VideoLive.Show, :show
     live "/videos/:id/edit", VideoLive.Form, :edit
   end
 
