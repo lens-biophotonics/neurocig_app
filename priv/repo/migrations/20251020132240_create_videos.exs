@@ -7,5 +7,7 @@ defmodule App.Repo.Migrations.CreateVideos do
 
       timestamps(type: :utc_datetime)
     end
+
+    create unique_index(:videos, :name)
   end
 end
