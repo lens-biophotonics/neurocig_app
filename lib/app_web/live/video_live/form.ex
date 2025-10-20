@@ -1,4 +1,5 @@
 defmodule AppWeb.VideoLive.Form do
+  alias App.Annotations
   use AppWeb, :live_view
 
   alias App.Videos
@@ -18,7 +19,29 @@ defmodule AppWeb.VideoLive.Form do
           <p>Frame: {@frame}</p>
           <p>Time: {Time.from_seconds_after_midnight(Integer.floor_div(@frame, 15))}</p>
 
-          <img src={@frame_path} />
+          <svg width="640" height="480" xmlns="http://www.w3.org/2000/svg">
+            <image href={@frame_path} />
+            <text
+              :for={ann <- @annotations}
+              x={ann.bb_x1}
+              y={ann.bb_y1 - 10}
+              font-family="Arial"
+              font-size="16"
+              fill={@colors[ann.mouse_id]}
+            >
+              {ann.mouse_id}
+            </text>
+            <rect
+              :for={ann <- @annotations}
+              width={ann.bb_x2 - ann.bb_x1}
+              height={ann.bb_y2 - ann.bb_y1}
+              x={ann.bb_x1}
+              y={ann.bb_y1}
+              fill="none"
+              stroke={@colors[ann.mouse_id]}
+              stroke-width="2"
+            />
+          </svg>
 
           <footer>
             <.button navigate={return_path(@return_to, @video)}>Back</.button>
@@ -34,6 +57,13 @@ defmodule AppWeb.VideoLive.Form do
     {:ok,
      socket
      |> assign(:return_to, return_to(params["return_to"]))
+     |> assign(:colors, %{
+       1 => "red",
+       2 => "yellow",
+       3 => "lawngreen",
+       4 => "cyan",
+       5 => "magenta"
+     })
      |> apply_action(socket.assigns.live_action, params)}
   end
 
@@ -45,6 +75,7 @@ defmodule AppWeb.VideoLive.Form do
 
     socket
     |> assign(:video, video)
+    |> assign(:annotations, [])
     |> assign_frame(1)
     |> assign(:form, to_form(Videos.change_video(video)))
   end
@@ -121,6 +152,7 @@ defmodule AppWeb.VideoLive.Form do
     socket
     |> assign(:frame, frame)
     |> assign(:frame_path, frame_path)
+    |> assign(:annotations, Annotations.get_annotations(socket.assigns.video, frame))
   end
 
   defp inc_frame(socket) do

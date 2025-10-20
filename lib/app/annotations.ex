@@ -6,6 +6,7 @@ defmodule App.Annotations do
   import Ecto.Query, warn: false
   alias App.Repo
 
+  alias App.Videos.Video
   alias App.Annotations.Annotation
 
   @doc """
@@ -100,5 +101,10 @@ defmodule App.Annotations do
   """
   def change_annotation(%Annotation{} = annotation, attrs \\ %{}) do
     Annotation.changeset(annotation, attrs)
+  end
+
+  def get_annotations(%Video{} = video, frame) do
+    from(a in Annotation, where: a.video_id == ^video.id and a.frame == ^frame)
+    |> Repo.all()
   end
 end
