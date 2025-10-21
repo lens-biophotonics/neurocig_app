@@ -54,10 +54,13 @@ defmodule AppWeb.VideoLive.Form do
 
       <div :if={@frame == nil}>Loading annotations... <.progress /></div>
 
-      <div :if={@frame} tabindex="-1" phx-keydown="key_event">
+      <div :if={@frame && @annotations} tabindex="-1" phx-keydown="key_event">
         <.header>
-          <p>Frame: {@frame}</p>
-          <p>Time: {Time.from_seconds_after_midnight(Integer.floor_div(@frame, 15))}</p>
+          <p>Frame: {@frame} / {@maxframe}</p>
+          <p>
+            Time: <span>{Time.from_seconds_after_midnight(Integer.floor_div(@frame, 15))}</span>
+            / <span>{Time.from_seconds_after_midnight(Integer.floor_div(@maxframe, 15))}</span>
+          </p>
           <:subtitle>
             To move frame by frame, click on the image then use the keyboard arrow keys
             <kbd class="kbd">◀︎</kbd>
@@ -126,7 +129,7 @@ defmodule AppWeb.VideoLive.Form do
        5 => "magenta"
      })
      |> assign_control_form(%{"show_bb" => "true", "show_keypoints" => "true"})
-     |> assign(annotations: [], frame: nil, video: nil)
+     |> assign(annotations: %{}, frame: nil, video: nil)
      |> apply_action(socket.assigns.live_action, params)}
   end
 
@@ -236,10 +239,12 @@ defmodule AppWeb.VideoLive.Form do
 
     if video.id != video_id do
       video = Videos.get_video!(video_id)
+      ann = Annotations.load_annotations(video)
 
       socket
       |> assign(:video, video)
-      |> assign(:annotations, Annotations.load_annotations(video))
+      |> assign(:annotations, ann)
+      |> assign(:maxframe, Enum.max(Map.keys(ann)))
     else
       socket
     end

@@ -19,7 +19,6 @@ defmodule App.Annotations do
 
     Map.keys(json)
     |> Enum.map(&String.to_integer/1)
-    |> Enum.sort()
     |> Map.new(&{&1, get_annotations_for_frame(&1, json, video)})
   end
 
@@ -27,7 +26,6 @@ defmodule App.Annotations do
     frame_data = json[Integer.to_string(frame)]
 
     Map.keys(frame_data)
-    |> Enum.sort()
     |> Map.new(fn mouse_id ->
       ann =
         %Annotation{
