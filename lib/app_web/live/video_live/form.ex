@@ -13,40 +13,36 @@ defmodule AppWeb.VideoLive.Form do
         {@video.name}
       </.header>
 
-      <.form for={@control_form} id="video-form" phx-change="control_change">
+      <.form
+        for={@control_form}
+        id="video-form"
+        phx-change="control_change"
+        phx-submit="control_change"
+      >
         <div class="flex gap-4">
           <.input field={@control_form[:show_bb]} type="toggle" label="Show bounding boxes" />
           <.input field={@control_form[:show_keypoints]} type="toggle" label="Show keypoints" />
         </div>
-        <div class="flex gap-4">
-          <.input
-            field={@control_form[:go_to_frame]}
-            type="number"
-            label="Go to frame"
-            phx-debounce="800"
-          />
-          <.fieldset class="mt-2">
-            <.fieldset_label>&nbsp;</.fieldset_label>
-            <.button type="button" name="go_to_frame_button" phx-click={JS.dispatch("change")}>
-              Go to frame
-            </.button>
-          </.fieldset>
-        </div>
-        <div class="flex gap-4">
-          <.input
-            type="time"
-            field={@control_form[:go_to_time]}
-            step="1"
-            label="Go to time"
-          />
-          <.fieldset class="mt-2">
-            <.fieldset_label>&nbsp;</.fieldset_label>
-            <.button type="button" name="go_to_time_button" phx-click={JS.dispatch("change")}>
-              Go to time
-            </.button>
-          </.fieldset>
-        </div>
       </.form>
+      <div class="flex gap-4">
+        <.input
+          type="number"
+          phx-keydown="go_to_frame"
+          phx-key="Enter"
+          field={@control_form[:go_to_frame]}
+          label="Go to frame"
+        />
+      </div>
+      <div class="flex gap-4">
+        <.input
+          type="time"
+          phx-keydown="go_to_time"
+          phx-key="Enter"
+          field={@control_form[:go_to_time]}
+          step="1"
+          label="Go to time"
+        />
+      </div>
       <br />
 
       <p>Frame: {@frame}</p>
@@ -139,26 +135,6 @@ defmodule AppWeb.VideoLive.Form do
   end
 
   @impl Phoenix.LiveView
-  def handle_event(
-        "control_change",
-        %{"_target" => ["go_to_frame_button"], "go_to_frame" => frame},
-        socket
-      ) do
-    {:noreply, assign_frame(socket, String.to_integer(frame))}
-  end
-
-  @impl Phoenix.LiveView
-  def handle_event(
-        "control_change",
-        %{"_target" => ["go_to_time_button"], "go_to_time" => time},
-        socket
-      ) do
-    {:ok, time} = Time.from_iso8601(time)
-    {seconds, _} = Time.to_seconds_after_midnight(time)
-    {:noreply, assign_frame(socket, seconds * 15)}
-  end
-
-  @impl Phoenix.LiveView
   def handle_event("control_change", params, socket) do
     {:noreply, assign_control_form(socket, params)}
   end
@@ -174,12 +150,29 @@ defmodule AppWeb.VideoLive.Form do
   end
 
   @impl Phoenix.LiveView
+  def handle_event("go_to_frame", %{"value" => frame}, socket) do
+    {:noreply, assign_frame(socket, String.to_integer(frame))}
+  end
+
+  @impl Phoenix.LiveView
+  def handle_event("go_to_time", %{"value" => time}, socket) do
+    {:ok, time} = Time.from_iso8601(time)
+    {seconds, _} = Time.to_seconds_after_midnight(time)
+    {:noreply, assign_frame(socket, seconds * 15)}
+  end
+
+  @impl Phoenix.LiveView
   def handle_event("key_event", _params, socket) do
     {:noreply, socket}
   end
 
   def handle_event("save", %{"video" => video_params}, socket) do
     save_video(socket, socket.assigns.live_action, video_params)
+  end
+
+  @impl Phoenix.LiveView
+  def handle_event(_event, _params, socket) do
+    {:noreply, socket}
   end
 
   defp save_video(socket, :edit, video_params) do
