@@ -36,13 +36,12 @@ defmodule AppWeb.VideoLive.Form do
           <.input
             type="time"
             field={@control_form[:go_to_time]}
-            step="20"
+            step="1"
             label="Go to time"
-            phx-debounce="800"
           />
           <.fieldset class="mt-2">
             <.fieldset_label>&nbsp;</.fieldset_label>
-            <.button type="button" name="go_to_frame_button" phx-click={JS.dispatch("change")}>
+            <.button type="button" name="go_to_time_button" phx-click={JS.dispatch("change")}>
               Go to time
             </.button>
           </.fieldset>
@@ -149,6 +148,17 @@ defmodule AppWeb.VideoLive.Form do
   end
 
   @impl Phoenix.LiveView
+  def handle_event(
+        "control_change",
+        %{"_target" => ["go_to_time_button"], "go_to_time" => time},
+        socket
+      ) do
+    {:ok, time} = Time.from_iso8601(time)
+    {seconds, _} = Time.to_seconds_after_midnight(time)
+    {:noreply, assign_frame(socket, seconds * 15)}
+  end
+
+  @impl Phoenix.LiveView
   def handle_event("control_change", params, socket) do
     {:noreply, assign_control_form(socket, params)}
   end
@@ -237,7 +247,8 @@ defmodule AppWeb.VideoLive.Form do
         to_form(%{
           "show_bb" => Map.get(params, "show_bb", "true") |> String.to_existing_atom(),
           "show_keypoints" =>
-            Map.get(params, "show_keypoints", "true") |> String.to_existing_atom()
+            Map.get(params, "show_keypoints", "true") |> String.to_existing_atom(),
+          "go_to_time" => Map.get(params, "go_to_time", "00:00:00")
         })
     )
   end
