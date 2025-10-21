@@ -15,18 +15,27 @@ defmodule AppWeb.VideoLive.Form do
 
       <.form
         for={@control_form}
-        id="video-form"
+        id="control-form"
         phx-change="control_change"
         phx-submit="control_change"
       >
-        <div class="flex gap-4">
-          <.input field={@control_form[:show_bb]} type="toggle" label="Show bounding boxes" />
-          <.input field={@control_form[:show_keypoints]} type="toggle" label="Show keypoints" />
-        </div>
       </.form>
-      <div class="flex gap-4">
+      <div class="flex gap-4 items-center">
+        <.input
+          type="toggle"
+          form="control-form"
+          field={@control_form[:show_bb]}
+          label="Show bounding boxes"
+        />
+        <.input
+          type="toggle"
+          form="control-form"
+          field={@control_form[:show_keypoints]}
+          label="Show keypoints"
+        />
         <.input
           type="number"
+          form="control-form"
           phx-keydown="go_to_frame"
           phx-key="Enter"
           field={@control_form[:go_to_frame]}
@@ -34,6 +43,7 @@ defmodule AppWeb.VideoLive.Form do
         />
         <.input
           type="time"
+          form="control-form"
           phx-keydown="go_to_time"
           phx-key="Enter"
           field={@control_form[:go_to_time]}
@@ -60,7 +70,7 @@ defmodule AppWeb.VideoLive.Form do
           <image href={@frame_path} />
           <text
             :for={{mouse_id, ann} <- @annotations[@frame]}
-            :if={@control_form[:show_bb].value}
+            :if={@control_form[:show_bb].value == true}
             x={ann.bb_x1}
             y={ann.bb_y1 - 10}
             font-family="Arial"
@@ -71,7 +81,7 @@ defmodule AppWeb.VideoLive.Form do
           </text>
           <rect
             :for={{mouse_id, ann} <- @annotations[@frame]}
-            :if={@control_form[:show_bb].value}
+            :if={@control_form[:show_bb].value == true}
             width={ann.bb_x2 - ann.bb_x1}
             height={ann.bb_y2 - ann.bb_y1}
             x={ann.bb_x1}
@@ -80,8 +90,7 @@ defmodule AppWeb.VideoLive.Form do
             stroke={@colors[mouse_id]}
             stroke-width="2"
           />
-
-          <%= if @control_form[:show_keypoints].value do %>
+          <%= if @control_form[:show_keypoints].value == true do %>
             <%= for {_mouse_id, ann} <- @annotations[@frame] do %>
               <.keypoint cx={ann.nose_x} cy={ann.nose_y} color="yellow" />
               <.keypoint cx={ann.earL_x} cy={ann.earL_y} color="orchid" />
@@ -116,7 +125,7 @@ defmodule AppWeb.VideoLive.Form do
        4 => "cyan",
        5 => "magenta"
      })
-     |> assign_control_form(%{})
+     |> assign_control_form(%{"show_bb" => "true", "show_keypoints" => "true"})
      |> assign(annotations: [], frame: nil, video: nil)
      |> apply_action(socket.assigns.live_action, params)}
   end
@@ -258,9 +267,9 @@ defmodule AppWeb.VideoLive.Form do
     assign(socket,
       control_form:
         to_form(%{
-          "show_bb" => Map.get(params, "show_bb", "true") |> String.to_existing_atom(),
+          "show_bb" => Map.get(params, "show_bb", "false") |> String.to_existing_atom(),
           "show_keypoints" =>
-            Map.get(params, "show_keypoints", "true") |> String.to_existing_atom(),
+            Map.get(params, "show_keypoints", "false") |> String.to_existing_atom(),
           "go_to_time" => Map.get(params, "go_to_time", "00:00:00")
         })
     )
