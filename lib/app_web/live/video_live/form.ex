@@ -158,7 +158,14 @@ defmodule AppWeb.VideoLive.Form do
   def handle_event("go_to_time", %{"value" => time}, socket) do
     {:ok, time} = Time.from_iso8601(time)
     {seconds, _} = Time.to_seconds_after_midnight(time)
-    {:noreply, assign_frame(socket, seconds * 15)}
+
+    frame =
+      case seconds * 15 do
+        frame when frame > 0 -> frame
+        _ -> 1
+      end
+
+    {:noreply, assign_frame(socket, frame)}
   end
 
   @impl Phoenix.LiveView
