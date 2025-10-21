@@ -51,6 +51,14 @@ defmodule AppWeb.VideoLive.Form do
           label="Go to time"
         />
       </div>
+      <.input
+        type="range"
+        form="control-form"
+        field={@control_form[:frame]}
+        min="1"
+        max={@maxframe}
+        value={@frame}
+      />
 
       <div :if={@frame == nil}>Loading annotations... <.progress /></div>
 
@@ -129,7 +137,7 @@ defmodule AppWeb.VideoLive.Form do
        5 => "magenta"
      })
      |> assign_control_form(%{"show_bb" => "true", "show_keypoints" => "true"})
-     |> assign(annotations: %{}, frame: nil, video: nil)
+     |> assign(annotations: %{}, frame: nil, video: nil, maxframe: nil)
      |> apply_action(socket.assigns.live_action, params)}
   end
 
@@ -144,6 +152,11 @@ defmodule AppWeb.VideoLive.Form do
     else
       socket
     end
+  end
+
+  @impl Phoenix.LiveView
+  def handle_event("control_change", %{"_target" => ["frame"], "frame" => frame}, socket) do
+    {:noreply, assign_frame(socket, String.to_integer(frame))}
   end
 
   @impl Phoenix.LiveView
