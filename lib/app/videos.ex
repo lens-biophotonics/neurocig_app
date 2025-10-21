@@ -36,6 +36,7 @@ defmodule App.Videos do
 
   """
   def get_video!(id), do: Repo.get!(Video, id)
+  def get_video_by_name(name), do: Repo.get_by(Video, name: name)
 
   @doc """
   Creates a video.

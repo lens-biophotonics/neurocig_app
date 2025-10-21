@@ -90,5 +90,4 @@ defmodule AppWeb.VideoLive.Form do
   end
 
   defp return_path("index", _video), do: ~p"/videos"
-  defp return_path("show", video), do: ~p"/videos/#{video}"
 end

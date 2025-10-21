@@ -13,20 +13,6 @@ defmodule AppWeb.VideoLive.Index do
         row_click={fn {_id, video} -> JS.navigate(~p"/videos/#{video}/edit") end}
       >
         <:col :let={{_id, video}} label="Name">{video.name}</:col>
-        <:action :let={{_id, video}}>
-          <div class="sr-only">
-            <.link navigate={~p"/videos/#{video}"}>Show</.link>
-          </div>
-          <.link navigate={~p"/videos/#{video}/edit"}>Edit</.link>
-        </:action>
-        <:action :let={{id, video}}>
-          <.link
-            phx-click={JS.push("delete", value: %{id: video.id}) |> hide("##{id}")}
-            data-confirm="Are you sure?"
-          >
-            Delete
-          </.link>
-        </:action>
       </.table>
     </Layouts.app>
     """
