@@ -83,10 +83,10 @@ defmodule AppWeb.VideoLive.Form do
 
           <%= if @control_form[:show_keypoints].value do %>
             <%= for {_mouse_id, ann} <- @annotations[@frame] do %>
-              <circle r="3" cx={ann.nose_x} cy={ann.nose_y} fill="yellow" />
-              <circle r="3" cx={ann.earL_x} cy={ann.earL_y} fill="orchid" />
-              <circle r="3" cx={ann.earR_x} cy={ann.earR_y} fill="lightpink" />
-              <circle r="3" cx={ann.tailB_x} cy={ann.tailB_y} fill="orange" />
+              <.keypoint cx={ann.nose_x} cy={ann.nose_y} color="yellow" />
+              <.keypoint cx={ann.earL_x} cy={ann.earL_y} color="orchid" />
+              <.keypoint cx={ann.earR_x} cy={ann.earR_y} color="lightpink" />
+              <.keypoint cx={ann.tailB_x} cy={ann.tailB_y} color="orange" />
             <% end %>
           <% end %>
         </svg>
@@ -95,6 +95,12 @@ defmodule AppWeb.VideoLive.Form do
         </footer>
       </div>
     </Layouts.app>
+    """
+  end
+
+  def keypoint(assigns) do
+    ~H"""
+    <circle :if={@cx && @cy} r="3" cx={@cx} cy={@cy} fill={@color} />
     """
   end
 
