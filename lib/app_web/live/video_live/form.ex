@@ -110,6 +110,7 @@ defmodule AppWeb.VideoLive.Form do
        5 => "magenta"
      })
      |> assign_control_form(%{})
+     |> assign(:annotations, [])
      |> apply_action(socket.assigns.live_action, params)}
   end
 
@@ -117,21 +118,9 @@ defmodule AppWeb.VideoLive.Form do
   defp return_to(_), do: "index"
 
   defp apply_action(socket, :edit, %{"id" => id}) do
-    video = Videos.get_video!(id)
-
     socket
-    |> assign(:video, video)
-    |> assign(:annotations, [])
+    |> maybe_assign_video(id)
     |> assign_frame(1)
-  end
-
-  defp apply_action(socket, :new, _params) do
-    video = %Video{}
-
-    socket
-    |> assign(:page_title, "New Video")
-    |> assign(:video, video)
-    |> assign(:form, to_form(Videos.change_video(video)))
   end
 
   @impl Phoenix.LiveView
@@ -210,7 +199,11 @@ defmodule AppWeb.VideoLive.Form do
 
   defp return_path("index", _video), do: ~p"/videos"
 
-  defp assign_frame(socket, frame) do
+  defp assign_frame(socket, frame) when is_binary(frame) do
+    assign_frame(socket, String.to_integer(frame))
+  end
+
+  defp assign_frame(socket, frame) when is_integer(frame) do
     frame_string =
       Integer.to_string(frame)
       |> String.pad_leading(5, "0")
@@ -221,6 +214,19 @@ defmodule AppWeb.VideoLive.Form do
     |> assign(:frame, frame)
     |> assign(:frame_path, frame_path)
     |> assign(:annotations, Annotations.get_annotations(socket.assigns.video, frame))
+  end
+
+  defp maybe_assign_video(socket, video_id) do
+    video = Map.get(socket.assigns, :video, %Video{})
+
+    if video.id != video_id do
+      video = Videos.get_video!(video_id)
+
+      socket
+      |> assign(:video, video)
+    else
+      socket
+    end
   end
 
   defp inc_frame(socket) do

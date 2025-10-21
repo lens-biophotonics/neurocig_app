@@ -10,7 +10,7 @@ defmodule AppWeb.VideoLive.Index do
       <.table
         id="videos"
         rows={@streams.videos}
-        row_click={fn {_id, video} -> JS.navigate(~p"/videos/#{video}/edit") end}
+        row_click={fn {_id, video} -> JS.navigate(~p"/videos/#{video}") end}
       >
         <:col :let={{_id, video}} label="Name">{video.name}</:col>
       </.table>

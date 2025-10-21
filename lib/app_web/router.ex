@@ -20,7 +20,7 @@ defmodule AppWeb.Router do
     get "/", PageController, :home
 
     live "/videos", VideoLive.Index, :index
-    live "/videos/:id/edit", VideoLive.Form, :edit
+    live "/videos/:id", VideoLive.Form, :edit
   end
 
   # Other scopes may use custom stacks.
