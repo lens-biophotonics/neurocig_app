@@ -110,6 +110,12 @@ defmodule AppWeb.VideoLive.Form do
           label="Go to time"
         />
       </div>
+      <.live_component
+        id="correction-table"
+        module={AppWeb.VideoLive.CorrectionTable}
+        video={@video}
+        }
+      />
     </Layouts.app>
     """
   end
