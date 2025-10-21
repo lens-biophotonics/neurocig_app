@@ -32,8 +32,6 @@ defmodule AppWeb.VideoLive.Form do
           field={@control_form[:go_to_frame]}
           label="Go to frame"
         />
-      </div>
-      <div class="flex gap-4">
         <.input
           type="time"
           phx-keydown="go_to_time"
@@ -43,7 +41,6 @@ defmodule AppWeb.VideoLive.Form do
           label="Go to time"
         />
       </div>
-      <br />
 
       <div :if={@frame == nil}>Loading annotations... <.progress /></div>
 
