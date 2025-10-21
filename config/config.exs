@@ -60,7 +60,7 @@ config :logger, :default_formatter,
 # Use Jason for JSON parsing in Phoenix
 config :phoenix, :json_library, Jason
 
-config :daisy_ui_components, translate_function: &MyAppWeb.CoreComponents.translate_error/1
+config :daisy_ui_components, translate_function: &AppWeb.CoreComponents.translate_error/1
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.

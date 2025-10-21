@@ -110,6 +110,7 @@ defmodule AppWeb.VideoLive.Form do
           label="Go to time"
         />
       </div>
+      <.header>Corrections</.header>
       <.live_component
         id="correction-table"
         module={AppWeb.VideoLive.CorrectionTable}
