@@ -11,72 +11,16 @@ defmodule AppWeb.VideoLive.Form do
     <Layouts.app flash={@flash}>
       <.header :if={@video}>
         {@video.name}
+        <:subtitle>
+          To move frame by frame, click on the image then use the keyboard arrow keys
+          <kbd class="kbd">◀︎</kbd>
+          <kbd class="kbd">▶︎</kbd>.
+        </:subtitle>
       </.header>
-
-      <.form
-        for={@control_form}
-        id="control-form"
-        phx-change="control_change"
-        phx-submit="control_change"
-      >
-      </.form>
-      <div class="flex gap-4 items-center">
-        <.input
-          type="toggle"
-          form="control-form"
-          field={@control_form[:show_bb]}
-          label="Show bounding boxes"
-        />
-        <.input
-          type="toggle"
-          form="control-form"
-          field={@control_form[:show_keypoints]}
-          label="Show keypoints"
-        />
-        <.input
-          type="number"
-          form="control-form"
-          phx-keydown="go_to_frame"
-          phx-key="Enter"
-          field={@control_form[:go_to_frame]}
-          label="Go to frame"
-        />
-        <.input
-          type="time"
-          form="control-form"
-          phx-keydown="go_to_time"
-          phx-key="Enter"
-          field={@control_form[:go_to_time]}
-          step="1"
-          label="Go to time"
-        />
-      </div>
-      <.input
-        type="range"
-        form="control-form"
-        field={@control_form[:frame]}
-        min="1"
-        max={@maxframe}
-        value={@frame}
-      />
 
       <div :if={@frame == nil}>Loading annotations... <.progress /></div>
 
       <div :if={@frame && @annotations} tabindex="-1" phx-keydown="key_event">
-        <.header>
-          <p>Frame: {@frame} / {@maxframe}</p>
-          <p>
-            Time: <span>{Time.from_seconds_after_midnight(Integer.floor_div(@frame, 15))}</span>
-            / <span>{Time.from_seconds_after_midnight(Integer.floor_div(@maxframe, 15))}</span>
-          </p>
-          <:subtitle>
-            To move frame by frame, click on the image then use the keyboard arrow keys
-            <kbd class="kbd">◀︎</kbd>
-            <kbd class="kbd">▶︎</kbd>
-            .
-          </:subtitle>
-        </.header>
-        <br />
         <svg width="640" height="480" xmlns="http://www.w3.org/2000/svg">
           <image href={@frame_path} />
           <text
@@ -110,15 +54,67 @@ defmodule AppWeb.VideoLive.Form do
             <% end %>
           <% end %>
         </svg>
-        <footer>
-          <.button navigate={return_path(@return_to, @video)}>Back</.button>
-        </footer>
+        <div class="flex">
+          <div class="flex-1">
+            Time: <span>{Time.from_seconds_after_midnight(Integer.floor_div(@frame, 15))}</span>
+            / <span>{Time.from_seconds_after_midnight(Integer.floor_div(@maxframe, 15))}</span>
+          </div>
+
+          <div class="flex-1 text-right">Frame: {@frame} / {@maxframe}</div>
+        </div>
+      </div>
+
+      <.form
+        for={@control_form}
+        id="control-form"
+        phx-change="control_change"
+        phx-submit="control_change"
+      >
+      </.form>
+      <.input
+        type="range"
+        form="control-form"
+        field={@control_form[:frame]}
+        min="1"
+        max={@maxframe}
+        value={@frame}
+      />
+      <div class="flex gap-4 items-center">
+        <.input
+          type="toggle"
+          form="control-form"
+          field={@control_form[:show_bb]}
+          label="Show bounding boxes"
+        />
+        <.input
+          type="toggle"
+          form="control-form"
+          field={@control_form[:show_keypoints]}
+          label="Show keypoints"
+        />
+        <.input
+          type="number"
+          form="control-form"
+          phx-keydown="go_to_frame"
+          phx-key="Enter"
+          field={@control_form[:go_to_frame]}
+          label="Go to frame"
+        />
+        <.input
+          type="time"
+          form="control-form"
+          phx-keydown="go_to_time"
+          phx-key="Enter"
+          field={@control_form[:go_to_time]}
+          step="1"
+          label="Go to time"
+        />
       </div>
     </Layouts.app>
     """
   end
 
-  def keypoint(assigns) do
+  defp keypoint(assigns) do
     ~H"""
     <circle :if={@cx && @cy} r="3" cx={@cx} cy={@cy} fill={@color} />
     """
@@ -128,7 +124,6 @@ defmodule AppWeb.VideoLive.Form do
   def mount(params, _session, socket) do
     {:ok,
      socket
-     |> assign(:return_to, return_to(params["return_to"]))
      |> assign(:colors, %{
        1 => "red",
        2 => "gold",
@@ -140,9 +135,6 @@ defmodule AppWeb.VideoLive.Form do
      |> assign(annotations: %{}, frame: nil, video: nil, maxframe: nil)
      |> apply_action(socket.assigns.live_action, params)}
   end
-
-  defp return_to("show"), do: "show"
-  defp return_to(_), do: "index"
 
   defp apply_action(socket, :edit, %{"id" => id}) do
     if Phoenix.LiveView.connected?(socket) do
