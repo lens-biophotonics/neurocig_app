@@ -5,10 +5,9 @@ defmodule Mix.Tasks.ImportAnnotations do
 
   def run(args) do
     Mix.Task.run("app.start")
-    Logger.configure(level: :warn)
 
     [path] = args
-    annotations = Path.wildcard(path <> "/*")
+    annotations = Path.wildcard(path <> "/*") |> Enum.map(&Path.basename/1)
 
     import_video(hd(annotations))
   end
