@@ -9,7 +9,7 @@ defmodule AppWeb.VideoLive.Form do
   def render(assigns) do
     ~H"""
     <Layouts.app flash={@flash}>
-      <.header>
+      <.header :if={@video}>
         {@video.name}
       </.header>
 
@@ -45,43 +45,47 @@ defmodule AppWeb.VideoLive.Form do
       </div>
       <br />
 
-      <p>Frame: {@frame}</p>
-      <p>Time: {Time.from_seconds_after_midnight(Integer.floor_div(@frame, 15))}</p>
-      <.header>
-        <:subtitle>
-          To move frame by frame, click on the image then use the keyboard arrow keys.
-          <kbd class="kbd">◀︎</kbd>
-          <kbd class="kbd">▶︎</kbd>
-        </:subtitle>
-      </.header>
-      <div tabindex="-1" phx-keydown="key_event">
+      <div :if={@frame == nil}>Loading annotations... <.progress /></div>
+
+      <div :if={@frame} tabindex="-1" phx-keydown="key_event">
+        <.header>
+          <p>Frame: {@frame}</p>
+          <p>Time: {Time.from_seconds_after_midnight(Integer.floor_div(@frame, 15))}</p>
+          <:subtitle>
+            To move frame by frame, click on the image then use the keyboard arrow keys
+            <kbd class="kbd">◀︎</kbd>
+            <kbd class="kbd">▶︎</kbd>
+            .
+          </:subtitle>
+        </.header>
+        <br />
         <svg width="640" height="480" xmlns="http://www.w3.org/2000/svg">
           <image href={@frame_path} />
           <text
-            :for={ann <- @annotations}
+            :for={{mouse_id, ann} <- @annotations[@frame]}
             :if={@control_form[:show_bb].value}
             x={ann.bb_x1}
             y={ann.bb_y1 - 10}
             font-family="Arial"
             font-size="16"
-            fill={@colors[ann.mouse_id]}
+            fill={@colors[mouse_id]}
           >
             {ann.mouse_id}
           </text>
           <rect
-            :for={ann <- @annotations}
+            :for={{mouse_id, ann} <- @annotations[@frame]}
             :if={@control_form[:show_bb].value}
             width={ann.bb_x2 - ann.bb_x1}
             height={ann.bb_y2 - ann.bb_y1}
             x={ann.bb_x1}
             y={ann.bb_y1}
             fill="none"
-            stroke={@colors[ann.mouse_id]}
+            stroke={@colors[mouse_id]}
             stroke-width="2"
           />
 
           <%= if @control_form[:show_keypoints].value do %>
-            <%= for ann <- @annotations do %>
+            <%= for {_mouse_id, ann} <- @annotations[@frame] do %>
               <circle r="3" cx={ann.nose_x} cy={ann.nose_y} fill="yellow" />
               <circle r="3" cx={ann.earL_x} cy={ann.earL_y} fill="orchid" />
               <circle r="3" cx={ann.earR_x} cy={ann.earR_y} fill="lightpink" />
@@ -89,10 +93,10 @@ defmodule AppWeb.VideoLive.Form do
             <% end %>
           <% end %>
         </svg>
+        <footer>
+          <.button navigate={return_path(@return_to, @video)}>Back</.button>
+        </footer>
       </div>
-      <footer>
-        <.button navigate={return_path(@return_to, @video)}>Back</.button>
-      </footer>
     </Layouts.app>
     """
   end
@@ -110,7 +114,7 @@ defmodule AppWeb.VideoLive.Form do
        5 => "magenta"
      })
      |> assign_control_form(%{})
-     |> assign(:annotations, [])
+     |> assign(annotations: [], frame: nil, video: nil)
      |> apply_action(socket.assigns.live_action, params)}
   end
 
@@ -118,9 +122,13 @@ defmodule AppWeb.VideoLive.Form do
   defp return_to(_), do: "index"
 
   defp apply_action(socket, :edit, %{"id" => id}) do
-    socket
-    |> maybe_assign_video(id)
-    |> assign_frame(1)
+    if Phoenix.LiveView.connected?(socket) do
+      socket
+      |> maybe_assign_video(id)
+      |> assign_frame(1)
+    else
+      socket
+    end
   end
 
   @impl Phoenix.LiveView
@@ -199,10 +207,6 @@ defmodule AppWeb.VideoLive.Form do
 
   defp return_path("index", _video), do: ~p"/videos"
 
-  defp assign_frame(socket, frame) when is_binary(frame) do
-    assign_frame(socket, String.to_integer(frame))
-  end
-
   defp assign_frame(socket, frame) when is_integer(frame) do
     frame_string =
       Integer.to_string(frame)
@@ -213,17 +217,17 @@ defmodule AppWeb.VideoLive.Form do
     socket
     |> assign(:frame, frame)
     |> assign(:frame_path, frame_path)
-    |> assign(:annotations, Annotations.get_annotations(socket.assigns.video, frame))
   end
 
   defp maybe_assign_video(socket, video_id) do
-    video = Map.get(socket.assigns, :video, %Video{})
+    video = socket.assigns.video || %Video{}
 
     if video.id != video_id do
       video = Videos.get_video!(video_id)
 
       socket
       |> assign(:video, video)
+      |> assign(:annotations, Annotations.load_annotations(video))
     else
       socket
     end

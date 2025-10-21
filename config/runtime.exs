@@ -20,6 +20,8 @@ if System.get_env("PHX_SERVER") do
   config :app, AppWeb.Endpoint, server: true
 end
 
+config :app, :neurocig, annotations_path: System.get_env("NEUROCIG_ANNOTATIONS_PATH")
+
 if config_env() == :prod do
   database_url =
     System.get_env("DATABASE_URL") ||
