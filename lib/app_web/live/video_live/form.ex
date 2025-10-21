@@ -80,7 +80,7 @@ defmodule AppWeb.VideoLive.Form do
         <svg width="640" height="480" xmlns="http://www.w3.org/2000/svg">
           <image href={@frame_path} />
           <text
-            :for={{mouse_id, ann} <- @annotations[@frame]}
+            :for={{mouse_id, ann} <- @annotations[@frame] || %{}}
             :if={@control_form[:show_bb].value == true}
             x={ann.bb_x1}
             y={ann.bb_y1 - 10}
@@ -91,7 +91,7 @@ defmodule AppWeb.VideoLive.Form do
             {ann.mouse_id}
           </text>
           <rect
-            :for={{mouse_id, ann} <- @annotations[@frame]}
+            :for={{mouse_id, ann} <- @annotations[@frame] || %{}}
             :if={@control_form[:show_bb].value == true}
             width={ann.bb_x2 - ann.bb_x1}
             height={ann.bb_y2 - ann.bb_y1}
@@ -102,7 +102,7 @@ defmodule AppWeb.VideoLive.Form do
             stroke-width="2"
           />
           <%= if @control_form[:show_keypoints].value == true do %>
-            <%= for {_mouse_id, ann} <- @annotations[@frame] do %>
+            <%= for {_mouse_id, ann} <- @annotations[@frame] || %{} do %>
               <.keypoint cx={ann.nose_x} cy={ann.nose_y} color="yellow" />
               <.keypoint cx={ann.earL_x} cy={ann.earL_y} color="orchid" />
               <.keypoint cx={ann.earR_x} cy={ann.earR_y} color="lightpink" />
