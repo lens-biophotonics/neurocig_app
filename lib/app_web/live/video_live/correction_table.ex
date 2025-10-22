@@ -20,14 +20,14 @@ defmodule AppWeb.VideoLive.CorrectionTable do
       >
         New correction
       </.button>
-      <.table :if={@corrections} id="corrections-table">
+      <.table :if={@corrections} id="corrections-table" class="min-w-xl">
         <.thead>
           <.tr>
             <.th class="text-right">frame</.th>
             <.th class="text-right">time</.th>
-            <.th class="text-right">mouse from</.th>
-            <.th class="text-right">mouse to</.th>
-            <.th>&nbsp;</.th>
+            <.th class="text-right">from</.th>
+            <.th class="text-right">to</.th>
+            <.th class="text-right">&nbsp;</.th>
           </.tr>
         </.thead>
         <.tbody>
@@ -46,7 +46,7 @@ defmodule AppWeb.VideoLive.CorrectionTable do
               </.td>
               <.td class="text-right">{c.mouse_from}</.td>
               <.td class="text-right">{c.mouse_to}</.td>
-              <.td class="gap-2">
+              <.td class="text-right w-auto">
                 <.tooltip text="edit">
                   <.button
                     type="button"

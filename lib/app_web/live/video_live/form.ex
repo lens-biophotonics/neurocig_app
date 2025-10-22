@@ -11,113 +11,118 @@ defmodule AppWeb.VideoLive.Form do
   def render(assigns) do
     ~H"""
     <Layouts.app flash={@flash}>
-      <.header :if={@video}>
-        {@video.name}
-        <:subtitle>
-          To move frame by frame, click on the image then use the keyboard arrow keys
-          <kbd class="kbd">◀︎</kbd>
-          <kbd class="kbd">▶︎</kbd>.
-        </:subtitle>
-      </.header>
+      <div class="flex gap-4">
+        <div>
+          <.header :if={@video}>
+            {@video.name}
+            <:subtitle>
+              To move frame by frame, click on the image then use the keyboard arrow keys
+              <kbd class="kbd">◀︎</kbd>
+              <kbd class="kbd">▶︎</kbd>.
+            </:subtitle>
+          </.header>
 
-      <div :if={@frame == nil}>Loading annotations... <.progress /></div>
-      <div :if={@frame && @annotations}>
-        <.video_frame
-          show_bb={@control_form[:show_bb].value == true}
-          show_keypoints={@control_form[:show_keypoints].value == true}
-          annotations={@annotations[@frame]}
-          frame_path={@frame_path}
-          corrected={@control_form[:show_corrected].value == "true"}
-        />
-        <div class="flex">
-          <div class="flex-1">
-            Time: <span>{Time.from_seconds_after_midnight(Integer.floor_div(@frame, 15))}</span>
-            / <span>{Time.from_seconds_after_midnight(Integer.floor_div(@maxframe, 15))}</span>
+          <div :if={@frame == nil}>Loading annotations... <.progress /></div>
+          <div :if={@frame && @annotations}>
+            <.video_frame
+              show_bb={@control_form[:show_bb].value == true}
+              show_keypoints={@control_form[:show_keypoints].value == true}
+              annotations={@annotations[@frame]}
+              frame_path={@frame_path}
+              corrected={@control_form[:show_corrected].value == "true"}
+            />
+            <div class="flex">
+              <div class="flex-1">
+                Time: <span>{Time.from_seconds_after_midnight(Integer.floor_div(@frame, 15))}</span>
+                / <span>{Time.from_seconds_after_midnight(Integer.floor_div(@maxframe, 15))}</span>
+              </div>
+
+              <div class="flex-1 text-right">Frame: {@frame} / {@maxframe}</div>
+            </div>
           </div>
 
-          <div class="flex-1 text-right">Frame: {@frame} / {@maxframe}</div>
+          <.form
+            for={@control_form}
+            id="control-form"
+            phx-change="control_change"
+            phx-submit="control_change"
+          >
+          </.form>
+          <.input
+            type="range"
+            form="control-form"
+            field={@control_form[:frame]}
+            min="1"
+            max={@maxframe}
+            value={@frame}
+          />
+          <div class="flex gap-4 items-center">
+            <.input
+              type="toggle"
+              form="control-form"
+              field={@control_form[:show_bb]}
+              label="Show bounding boxes"
+            />
+            <.input
+              type="toggle"
+              form="control-form"
+              field={@control_form[:show_keypoints]}
+              label="Show keypoints"
+            />
+            <.input
+              type="number"
+              form="control-form"
+              phx-keydown="go_to_frame"
+              phx-key="Enter"
+              field={@control_form[:go_to_frame]}
+              label="Go to frame"
+            />
+            <.input
+              type="time"
+              form="control-form"
+              phx-keydown="go_to_time"
+              phx-key="Enter"
+              field={@control_form[:go_to_time]}
+              step="1"
+              label="Go to time"
+            />
+          </div>
+          <.fieldset class="flex mt-2">
+            <.label for="show-original-radio">
+              <.input
+                id="show-original-radio"
+                form="control-form"
+                type="radio"
+                name={@control_form[:show_corrected].name}
+                value="false"
+                checked={@control_form[:show_corrected].value == "false"}
+              /> Show original
+            </.label>
+            <.label for="show-corrected-radio">
+              <.input
+                id="show-corrected-radio"
+                form="control-form"
+                type="radio"
+                name={@control_form[:show_corrected].name}
+                value="true"
+                checked={@control_form[:show_corrected].value == "true"}
+              /> Show corrected
+            </.label>
+          </.fieldset>
+        </div>
+        <div>
+          <.header>Corrections</.header>
+          <.live_component
+            id="correction-table"
+            module={AppWeb.VideoLive.CorrectionTable}
+            frame={@frame}
+            maxframe={@maxframe}
+            video={@video}
+            corrections={@corrections}
+            notify_changed={fn _ -> send(self(), :corrections_changed) end}
+          />
         </div>
       </div>
-
-      <.form
-        for={@control_form}
-        id="control-form"
-        phx-change="control_change"
-        phx-submit="control_change"
-      >
-      </.form>
-      <.input
-        type="range"
-        form="control-form"
-        field={@control_form[:frame]}
-        min="1"
-        max={@maxframe}
-        value={@frame}
-      />
-      <div class="flex gap-4 items-center">
-        <.input
-          type="toggle"
-          form="control-form"
-          field={@control_form[:show_bb]}
-          label="Show bounding boxes"
-        />
-        <.input
-          type="toggle"
-          form="control-form"
-          field={@control_form[:show_keypoints]}
-          label="Show keypoints"
-        />
-        <.input
-          type="number"
-          form="control-form"
-          phx-keydown="go_to_frame"
-          phx-key="Enter"
-          field={@control_form[:go_to_frame]}
-          label="Go to frame"
-        />
-        <.input
-          type="time"
-          form="control-form"
-          phx-keydown="go_to_time"
-          phx-key="Enter"
-          field={@control_form[:go_to_time]}
-          step="1"
-          label="Go to time"
-        />
-      </div>
-      <.fieldset class="flex mt-2">
-        <.label for="show-original-radio">
-          <.input
-            id="show-original-radio"
-            form="control-form"
-            type="radio"
-            name={@control_form[:show_corrected].name}
-            value="false"
-            checked={@control_form[:show_corrected].value == "false"}
-          /> Show original
-        </.label>
-        <.label for="show-corrected-radio">
-          <.input
-            id="show-corrected-radio"
-            form="control-form"
-            type="radio"
-            name={@control_form[:show_corrected].name}
-            value="true"
-            checked={@control_form[:show_corrected].value == "true"}
-          /> Show corrected
-        </.label>
-      </.fieldset>
-
-      <.header>Corrections</.header>
-      <.live_component
-        id="correction-table"
-        module={AppWeb.VideoLive.CorrectionTable}
-        frame={@frame}
-        maxframe={@maxframe}
-        video={@video}
-        corrections={@corrections}
-        notify_changed={fn _ -> send(self(), :corrections_changed) end}
-      />
     </Layouts.app>
     """
   end
