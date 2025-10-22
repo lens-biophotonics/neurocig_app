@@ -20,14 +20,14 @@ defmodule AppWeb.VideoLive.CorrectionTable do
       >
         New correction
       </.button>
-      <.table :if={@corrections} id="corrections-table" class="min-w-xl">
+      <.table :if={@corrections} id="corrections-table" class="table-auto">
         <.thead>
           <.tr>
-            <.th class="text-right">frame</.th>
-            <.th class="text-right">time</.th>
-            <.th class="text-right">from</.th>
-            <.th class="text-right">to</.th>
-            <.th class="text-right">&nbsp;</.th>
+            <.th class="text-right w-2/10">frame</.th>
+            <.th class="text-right w-1/10">time</.th>
+            <.th class="text-right w-1/10">from</.th>
+            <.th class="text-right w-1/10">to</.th>
+            <.th class="text-right w-2/10"></.th>
           </.tr>
         </.thead>
         <.tbody>
@@ -46,7 +46,7 @@ defmodule AppWeb.VideoLive.CorrectionTable do
               </.td>
               <.td class="text-right">{c.mouse_from}</.td>
               <.td class="text-right">{c.mouse_to}</.td>
-              <.td class="text-right w-auto">
+              <.td class="text-right">
                 <.tooltip text="edit">
                   <.button
                     type="button"
@@ -81,78 +81,75 @@ defmodule AppWeb.VideoLive.CorrectionTable do
 
   defp correction_form(assigns) do
     ~H"""
-    <div>
-      <.td class="text-right">
-        <.form
-          for={@edit_correction_form}
-          id="edit-correction-form"
-          phx-change="change_edit_correction"
-          phx-submit="submit_edit_correction"
+    <.td class="text-right">
+      <.form
+        for={@edit_correction_form}
+        id="edit-correction-form"
+        phx-change="change_edit_correction"
+        phx-submit="submit_edit_correction"
+        phx-target={@myself}
+      >
+      </.form>
+      <AppWeb.CoreComponents.input
+        type="number"
+        class="input input-sm"
+        min="1"
+        max={@maxframe}
+        form="edit-correction-form"
+        field={@edit_correction_form[:frame]}
+      />
+    </.td>
+    <.td class="text-right">
+      <%= if @edit_correction_form[:frame].value do %>
+        {Time.from_seconds_after_midnight(Integer.floor_div(@edit_correction_form[:frame].value, 15))}
+      <% else %>
+        --:--:--
+      <% end %>
+    </.td>
+    <.td class="text-right">
+      <AppWeb.CoreComponents.input
+        type="number"
+        class="input input-sm"
+        form="edit-correction-form"
+        field={@edit_correction_form[:mouse_from]}
+        min="1"
+        max="5"
+      />
+    </.td>
+    <.td class="text-right">
+      <AppWeb.CoreComponents.input
+        type="number"
+        class="input input-sm"
+        form="edit-correction-form"
+        field={@edit_correction_form[:mouse_to]}
+        min="1"
+        max="5"
+      />
+    </.td>
+    <.td class="text-right">
+      <.tooltip text="save">
+        <.button
+          type="button"
+          color="primary"
+          size="sm"
+          class="mb-2"
+          phx-click={JS.dispatch("submit", to: "#edit-correction-form")}
           phx-target={@myself}
         >
-        </.form>
-        <AppWeb.CoreComponents.input
-          type="number"
-          min="1"
-          max={@maxframe}
-          form="edit-correction-form"
-          field={@edit_correction_form[:frame]}
-        />
-      </.td>
-      <.td class="text-right">
-        <%= if @edit_correction_form[:frame].value do %>
-          {Time.from_seconds_after_midnight(
-            Integer.floor_div(@edit_correction_form[:frame].value, 15)
-          )}
-        <% else %>
-          --:--:--
-        <% end %>
-      </.td>
-      <.td class="text-right">
-        <AppWeb.CoreComponents.input
-          type="number"
-          form="edit-correction-form"
-          field={@edit_correction_form[:mouse_from]}
-          min="1"
-          max="5"
-        />
-      </.td>
-      <.td class="text-right">
-        <AppWeb.CoreComponents.input
-          type="number"
-          form="edit-correction-form"
-          field={@edit_correction_form[:mouse_to]}
-          min="1"
-          max="5"
-        />
-      </.td>
-      <.td>
-        <div class="flex gap-2">
-          <.tooltip text="save">
-            <.button
-              type="button"
-              color="primary"
-              size="sm"
-              class="mb-2"
-              phx-click={JS.dispatch("submit", to: "#edit-correction-form")}
-              phx-target={@myself}
-            >
-              <.icon name="hero-check" class="w-5 h-5" />
-            </.button>
-          </.tooltip>
-          <.tooltip text="cancel">
-            <.button
-              type="button"
-              size="sm"
-              phx-click="cancel_edit_correction"
-              phx-target={@myself}
-            >
-              <.icon name="hero-x-mark" class="w-5 h-5" />
-            </.button>
-          </.tooltip>
-        </div>
-      </.td>
-    </div>
+          <.icon name="hero-check" class="w-5 h-5" />
+        </.button>
+      </.tooltip>
+      <.tooltip text="cancel">
+        <.button
+          type="button"
+          size="sm"
+          phx-click="cancel_edit_correction"
+          phx-target={@myself}
+        >
+          <.icon name="hero-x-mark" class="w-5 h-5" />
+        </.button>
+      </.tooltip>
+    </.td>
     """
   end
 
