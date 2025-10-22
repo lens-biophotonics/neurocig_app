@@ -10,14 +10,14 @@ defmodule AppWeb.Router do
     plug :put_secure_browser_headers
   end
 
-  pipeline :api do
-    plug :accepts, ["json"]
+  scope "/", AppWeb do
+    pipe_through :browser
+
+    get "/", RedirectController, :redirect_to_videos
   end
 
   scope "/", AppWeb do
     pipe_through :browser
-
-    get "/", PageController, :home
 
     live "/videos", VideoLive.Index, :index
     live "/videos/:id", VideoLive.Form, :edit
