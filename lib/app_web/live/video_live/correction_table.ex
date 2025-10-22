@@ -53,7 +53,9 @@ defmodule AppWeb.VideoLive.CorrectionTable do
             <%= if @edit_correction && @edit_correction.id == c.id do %>
               {correction_form(assigns)}
             <% else %>
-              <.td class="text-right">{c.frame}</.td>
+              <.td class="text-right">
+                <a class="link" phx-click="go_to_frame" phx-value-value={c.frame}>{c.frame}</a>
+              </.td>
               <.td class="text-right">
                 {Time.from_seconds_after_midnight(Integer.floor_div(c.frame, 15))}
               </.td>
