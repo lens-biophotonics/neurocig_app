@@ -19,41 +19,13 @@ defmodule AppWeb.VideoLive.Form do
       </.header>
 
       <div :if={@frame == nil}>Loading annotations... <.progress /></div>
-
-      <div :if={@frame && @annotations} tabindex="-1" phx-keydown="key_event">
-        <svg width="640" height="480" xmlns="http://www.w3.org/2000/svg">
-          <image href={@frame_path} />
-          <text
-            :for={{mouse_id, ann} <- @annotations[@frame] || %{}}
-            :if={@control_form[:show_bb].value == true}
-            x={ann.bb_x1}
-            y={ann.bb_y1 - 10}
-            font-family="Arial"
-            font-size="16"
-            fill={@colors[mouse_id]}
-          >
-            {ann.mouse_id}
-          </text>
-          <rect
-            :for={{mouse_id, ann} <- @annotations[@frame] || %{}}
-            :if={@control_form[:show_bb].value == true}
-            width={ann.bb_x2 - ann.bb_x1}
-            height={ann.bb_y2 - ann.bb_y1}
-            x={ann.bb_x1}
-            y={ann.bb_y1}
-            fill="none"
-            stroke={@colors[mouse_id]}
-            stroke-width="2"
-          />
-          <%= if @control_form[:show_keypoints].value == true do %>
-            <%= for {_mouse_id, ann} <- @annotations[@frame] || %{} do %>
-              <.keypoint cx={ann.nose_x} cy={ann.nose_y} color="yellow" />
-              <.keypoint cx={ann.earL_x} cy={ann.earL_y} color="orchid" />
-              <.keypoint cx={ann.earR_x} cy={ann.earR_y} color="lightpink" />
-              <.keypoint cx={ann.tailB_x} cy={ann.tailB_y} color="orange" />
-            <% end %>
-          <% end %>
-        </svg>
+      <div :if={@frame && @annotations}>
+        <.video_frame
+          show_bb={@control_form[:show_bb].value == true}
+          show_keypoints={@control_form[:show_keypoints].value == true}
+          annotations={@annotations[@frame]}
+          frame_path={@frame_path}
+        />
         <div class="flex">
           <div class="flex-1">
             Time: <span>{Time.from_seconds_after_midnight(Integer.floor_div(@frame, 15))}</span>
@@ -122,6 +94,63 @@ defmodule AppWeb.VideoLive.Form do
     """
   end
 
+  attr :frame_path, :string, required: true
+  attr :annotations, :map, default: %{}
+  attr :show_bb, :boolean, default: false
+  attr :show_keypoints, :boolean, default: true
+
+  defp video_frame(assigns) do
+    assigns =
+      assign(assigns,
+        colors: %{
+          1 => "red",
+          2 => "gold",
+          3 => "lawngreen",
+          4 => "cyan",
+          5 => "magenta"
+        },
+        annotations: assigns.annotations || %{}
+      )
+
+    ~H"""
+    <div :if={@frame_path} tabindex="-1" phx-keydown="key_event">
+      <svg width="640" height="480" xmlns="http://www.w3.org/2000/svg">
+        <image href={@frame_path} />
+        <text
+          :for={{mouse_id, ann} <- @annotations}
+          :if={@show_bb}
+          x={ann.bb_x1}
+          y={ann.bb_y1 - 10}
+          font-family="Arial"
+          font-size="16"
+          fill={@colors[mouse_id]}
+        >
+          {ann.mouse_id}
+        </text>
+        <rect
+          :for={{mouse_id, ann} <- @annotations}
+          :if={@show_bb}
+          width={ann.bb_x2 - ann.bb_x1}
+          height={ann.bb_y2 - ann.bb_y1}
+          x={ann.bb_x1}
+          y={ann.bb_y1}
+          fill="none"
+          stroke={@colors[mouse_id]}
+          stroke-width="2"
+        />
+        <%= if @show_keypoints do %>
+          <%= for {_mouse_id, ann} <- @annotations do %>
+            <.keypoint cx={ann.nose_x} cy={ann.nose_y} color="yellow" />
+            <.keypoint cx={ann.earL_x} cy={ann.earL_y} color="orchid" />
+            <.keypoint cx={ann.earR_x} cy={ann.earR_y} color="lightpink" />
+            <.keypoint cx={ann.tailB_x} cy={ann.tailB_y} color="orange" />
+          <% end %>
+        <% end %>
+      </svg>
+    </div>
+    """
+  end
+
   defp keypoint(assigns) do
     ~H"""
     <circle :if={@cx && @cy} r="3" cx={@cx} cy={@cy} fill={@color} />
@@ -132,13 +161,6 @@ defmodule AppWeb.VideoLive.Form do
   def mount(params, _session, socket) do
     {:ok,
      socket
-     |> assign(:colors, %{
-       1 => "red",
-       2 => "gold",
-       3 => "lawngreen",
-       4 => "cyan",
-       5 => "magenta"
-     })
      |> assign_control_form(%{"show_bb" => "true", "show_keypoints" => "true"})
      |> assign(annotations: %{}, frame: nil, video: nil, maxframe: nil)
      |> apply_action(socket.assigns.live_action, params)}
