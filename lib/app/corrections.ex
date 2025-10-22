@@ -18,7 +18,11 @@ defmodule App.Corrections do
   end
 
   def list_corrections_by_video(%Video{} = video) do
-    from(c in Correction, where: ^video.id == c.video_id) |> Repo.all()
+    from(c in Correction,
+      where: ^video.id == c.video_id,
+      order_by: [c.frame, c.mouse_from, c.mouse_to]
+    )
+    |> Repo.all()
   end
 
   @doc """
