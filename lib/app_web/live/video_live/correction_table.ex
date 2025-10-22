@@ -6,22 +6,7 @@ defmodule AppWeb.VideoLive.CorrectionTable do
 
   @impl Phoenix.LiveComponent
   def mount(socket) do
-    {:ok, assign(socket, corrections: nil, edit_correction: false)}
-  end
-
-  @impl Phoenix.LiveComponent
-  def update(%{video: video} = assigns, socket) when not is_nil(video) do
-    socket =
-      socket
-      |> assign(assigns)
-      |> assign_corrections()
-
-    {:ok, socket}
-  end
-
-  @impl Phoenix.LiveComponent
-  def update(assigns, socket) do
-    {:ok, assign(socket, assigns)}
+    {:ok, assign(socket, edit_correction: false)}
   end
 
   @impl Phoenix.LiveComponent
@@ -189,8 +174,8 @@ defmodule AppWeb.VideoLive.CorrectionTable do
   @impl Phoenix.LiveComponent
   def handle_event("delete_correction", %{"id" => id}, socket) do
     Corrections.delete_correction(%Correction{id: String.to_integer(id)})
-
-    {:noreply, assign_corrections(socket)}
+    socket.assigns.notify_changed.(nil)
+    {:noreply, socket}
   end
 
   @impl Phoenix.LiveComponent
@@ -231,11 +216,12 @@ defmodule AppWeb.VideoLive.CorrectionTable do
       end
 
     with true <- cs.valid?,
-         {:ok, _corr} <- func.() do
+         {:ok, corr} <- func.() do
       socket =
         socket
         |> assign(edit_correction: false)
-        |> assign_corrections()
+
+      socket.assigns.notify_changed.(corr)
 
       {:noreply, socket}
     else
@@ -245,9 +231,5 @@ defmodule AppWeb.VideoLive.CorrectionTable do
       _ ->
         {:noreply, assign(socket, edit_correction_form: to_form(cs, action: :validate))}
     end
-  end
-
-  defp assign_corrections(socket) do
-    assign(socket, corrections: Corrections.list_corrections_by_video(socket.assigns.video))
   end
 end

@@ -4,6 +4,7 @@ defmodule App.Annotations.Annotation do
   defstruct video: %Video{},
             frame: nil,
             mouse_id: nil,
+            new_mouse_id: nil,
             bb_x1: nil,
             bb_y1: nil,
             bb_x2: nil,

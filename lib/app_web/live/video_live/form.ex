@@ -5,6 +5,8 @@ defmodule AppWeb.VideoLive.Form do
   alias App.Videos
   alias App.Videos.Video
 
+  alias App.Corrections
+
   @impl true
   def render(assigns) do
     ~H"""
@@ -25,6 +27,7 @@ defmodule AppWeb.VideoLive.Form do
           show_keypoints={@control_form[:show_keypoints].value == true}
           annotations={@annotations[@frame]}
           frame_path={@frame_path}
+          corrected={@control_form[:show_corrected].value == "true"}
         />
         <div class="flex">
           <div class="flex-1">
@@ -82,6 +85,29 @@ defmodule AppWeb.VideoLive.Form do
           label="Go to time"
         />
       </div>
+      <.fieldset class="flex mt-2">
+        <.label for="show-original-radio">
+          <.input
+            id="show-original-radio"
+            form="control-form"
+            type="radio"
+            name={@control_form[:show_corrected].name}
+            value="false"
+            checked={@control_form[:show_corrected].value == "false"}
+          /> Show original
+        </.label>
+        <.label for="show-corrected-radio">
+          <.input
+            id="show-corrected-radio"
+            form="control-form"
+            type="radio"
+            name={@control_form[:show_corrected].name}
+            value="true"
+            checked={@control_form[:show_corrected].value == "true"}
+          /> Show corrected
+        </.label>
+      </.fieldset>
+
       <.header>Corrections</.header>
       <.live_component
         id="correction-table"
@@ -89,6 +115,8 @@ defmodule AppWeb.VideoLive.Form do
         frame={@frame}
         maxframe={@maxframe}
         video={@video}
+        corrections={@corrections}
+        notify_changed={fn _ -> send(self(), :corrections_changed) end}
       />
     </Layouts.app>
     """
@@ -98,8 +126,16 @@ defmodule AppWeb.VideoLive.Form do
   attr :annotations, :map, default: %{}
   attr :show_bb, :boolean, default: false
   attr :show_keypoints, :boolean, default: true
+  attr :corrected, :boolean, default: false
 
   defp video_frame(assigns) do
+    get_mouse_id =
+      if assigns.corrected do
+        fn ann -> ann.new_mouse_id end
+      else
+        fn ann -> ann.mouse_id end
+      end
+
     assigns =
       assign(assigns,
         colors: %{
@@ -109,7 +145,8 @@ defmodule AppWeb.VideoLive.Form do
           4 => "cyan",
           5 => "magenta"
         },
-        annotations: assigns.annotations || %{}
+        annotations: assigns.annotations || %{},
+        get_mouse_id: get_mouse_id
       )
 
     ~H"""
@@ -117,15 +154,15 @@ defmodule AppWeb.VideoLive.Form do
       <svg width="640" height="480" xmlns="http://www.w3.org/2000/svg">
         <image href={@frame_path} />
         <text
-          :for={{mouse_id, ann} <- @annotations}
+          :for={{_mouse_id, ann} <- @annotations}
           :if={@show_bb}
           x={ann.bb_x1}
           y={ann.bb_y1 - 10}
           font-family="Arial"
           font-size="16"
-          fill={@colors[mouse_id]}
+          fill={@colors[@get_mouse_id.(ann)]}
         >
-          {ann.mouse_id}
+          {@get_mouse_id.(ann)}
         </text>
         <rect
           :for={{mouse_id, ann} <- @annotations}
@@ -135,7 +172,7 @@ defmodule AppWeb.VideoLive.Form do
           x={ann.bb_x1}
           y={ann.bb_y1}
           fill="none"
-          stroke={@colors[mouse_id]}
+          stroke={@colors[@get_mouse_id.(ann)]}
           stroke-width="2"
         />
         <%= if @show_keypoints do %>
@@ -161,8 +198,12 @@ defmodule AppWeb.VideoLive.Form do
   def mount(params, _session, socket) do
     {:ok,
      socket
-     |> assign_control_form(%{"show_bb" => "true", "show_keypoints" => "true"})
-     |> assign(annotations: %{}, frame: nil, video: nil, maxframe: nil)
+     |> assign_control_form(%{
+       "show_bb" => "true",
+       "show_keypoints" => "true",
+       "show_corrected" => "true"
+     })
+     |> assign(annotations: %{}, corrections: [], frame: nil, video: nil, maxframe: nil)
      |> apply_action(socket.assigns.live_action, params)}
   end
 
@@ -170,10 +211,16 @@ defmodule AppWeb.VideoLive.Form do
     if Phoenix.LiveView.connected?(socket) do
       socket
       |> maybe_assign_video(id)
+      |> assign_corrections()
       |> assign_frame(1)
     else
       socket
     end
+  end
+
+  @impl Phoenix.LiveView
+  def handle_info(:corrections_changed, socket) do
+    {:noreply, assign_corrections(socket)}
   end
 
   @impl Phoenix.LiveView
@@ -285,6 +332,54 @@ defmodule AppWeb.VideoLive.Form do
     end
   end
 
+  defp assign_corrections(socket) do
+    corrections = Corrections.list_corrections_by_video(socket.assigns.video)
+    annotations = reset_corrections(socket.assigns.annotations)
+    annotations = Enum.reduce(corrections, annotations, &apply_correction/2)
+
+    socket
+    |> assign(annotations: annotations, corrections: corrections)
+  end
+
+  defp reset_corrections(annotations) do
+    Enum.reduce(Map.keys(annotations), annotations, fn frame, annotations ->
+      Enum.reduce(Map.keys(annotations[frame]), annotations, fn mouse_id, annotations ->
+        update_in(annotations[frame][mouse_id], fn ann -> %{ann | new_mouse_id: ann.mouse_id} end)
+      end)
+    end)
+  end
+
+  defp apply_correction(corr, annotations) do
+    Enum.reduce(
+      Map.keys(annotations) |> Enum.filter(&(&1 >= corr.frame)),
+      annotations,
+      fn frame, acc ->
+        if Map.has_key?(acc, frame) and Map.has_key?(acc[frame], corr.mouse_from) and
+             Map.has_key?(acc[frame], corr.mouse_to) do
+          {_, found_from} =
+            Enum.find(acc[frame], fn {_m_id, ann} -> ann.new_mouse_id == corr.mouse_from end)
+
+          {_, found_to} =
+            Enum.find(acc[frame], fn {_m_id, ann} -> ann.new_mouse_id == corr.mouse_to end)
+
+          acc =
+            update_in(acc[frame][found_from.mouse_id], fn ann ->
+              %{ann | new_mouse_id: corr.mouse_to}
+            end)
+
+          acc =
+            update_in(acc[frame][found_to.mouse_id], fn ann ->
+              %{ann | new_mouse_id: corr.mouse_from}
+            end)
+
+          acc
+        else
+          acc
+        end
+      end
+    )
+  end
+
   defp inc_frame(socket) do
     new_frame = socket.assigns.frame + 1
 
@@ -304,14 +399,15 @@ defmodule AppWeb.VideoLive.Form do
   end
 
   defp assign_control_form(socket, params) do
-    assign(socket,
-      control_form:
-        to_form(%{
-          "show_bb" => Map.get(params, "show_bb", "false") |> String.to_existing_atom(),
-          "show_keypoints" =>
-            Map.get(params, "show_keypoints", "false") |> String.to_existing_atom(),
-          "go_to_time" => Map.get(params, "go_to_time", "00:00:00")
-        })
-    )
+    params =
+      params
+      |> put_in(["show_bb"], Map.get(params, "show_bb", "false") |> String.to_existing_atom())
+      |> put_in(
+        ["show_keypoints"],
+        Map.get(params, "show_keypoints", "false") |> String.to_existing_atom()
+      )
+      |> put_in(["go_to_time"], Map.get(params, "go_to_time", "00:00:00"))
+
+    assign(socket, control_form: to_form(params))
   end
 end
