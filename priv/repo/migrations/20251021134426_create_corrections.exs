@@ -3,10 +3,10 @@ defmodule App.Repo.Migrations.CreateCorrections do
 
   def change do
     create table(:corrections) do
+      add :video_id, references(:videos, on_delete: :nothing)
       add :frame, :integer
       add :mouse_from, :integer
       add :mouse_to, :integer
-      add :video_id, references(:videos, on_delete: :nothing)
 
       timestamps(type: :utc_datetime)
     end

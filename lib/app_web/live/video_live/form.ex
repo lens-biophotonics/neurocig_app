@@ -114,8 +114,9 @@ defmodule AppWeb.VideoLive.Form do
       <.live_component
         id="correction-table"
         module={AppWeb.VideoLive.CorrectionTable}
+        frame={@frame}
+        maxframe={@maxframe}
         video={@video}
-        }
       />
     </Layouts.app>
     """

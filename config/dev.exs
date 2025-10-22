@@ -59,7 +59,8 @@ config :app, AppWeb.Endpoint,
     patterns: [
       ~r"priv/static/(?!uploads/).*(js|css|png|jpeg|jpg|gif|svg)$",
       ~r"priv/gettext/.*(po)$",
-      ~r"lib/app_web/(?:controllers|live|components|router)/?.*\.(ex|heex)$"
+      ~r"lib/app/.*ex$",
+      ~r"lib/app_web/.*\.(ex|heex)$"
     ]
   ]
 
