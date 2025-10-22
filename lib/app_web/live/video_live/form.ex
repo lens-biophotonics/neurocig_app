@@ -11,7 +11,7 @@ defmodule AppWeb.VideoLive.Form do
   def render(assigns) do
     ~H"""
     <Layouts.app flash={@flash}>
-      <div class="flex gap-4">
+      <div class="grid grid-cols-2 gap-4 h-[92dvh]">
         <div>
           <.header :if={@video}>
             {@video.name}
@@ -110,7 +110,7 @@ defmodule AppWeb.VideoLive.Form do
             </.label>
           </.fieldset>
         </div>
-        <div>
+        <div class="h-full overflow-y-auto">
           <.header>Corrections</.header>
           <.live_component
             id="correction-table"
