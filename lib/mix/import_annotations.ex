@@ -7,9 +7,10 @@ defmodule Mix.Tasks.ImportAnnotations do
     Mix.Task.run("app.start")
 
     [path] = args
-    annotations = Path.wildcard(path <> "/*") |> Enum.map(&Path.basename/1)
 
-    import_video(hd(annotations))
+    Path.wildcard(path <> "/*")
+    |> Enum.map(&Path.basename/1)
+    |> Enum.map(&import_video/1)
   end
 
   defp import_video(name) do
