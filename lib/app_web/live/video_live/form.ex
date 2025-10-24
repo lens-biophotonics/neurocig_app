@@ -272,42 +272,10 @@ defmodule AppWeb.VideoLive.Form do
     {:noreply, socket}
   end
 
-  def handle_event("save", %{"video" => video_params}, socket) do
-    save_video(socket, socket.assigns.live_action, video_params)
-  end
-
   @impl Phoenix.LiveView
   def handle_event(_event, _params, socket) do
     {:noreply, socket}
   end
-
-  defp save_video(socket, :edit, video_params) do
-    case Videos.update_video(socket.assigns.video, video_params) do
-      {:ok, video} ->
-        {:noreply,
-         socket
-         |> put_flash(:info, "Video updated successfully")
-         |> push_navigate(to: return_path(socket.assigns.return_to, video))}
-
-      {:error, %Ecto.Changeset{} = changeset} ->
-        {:noreply, assign(socket, form: to_form(changeset))}
-    end
-  end
-
-  defp save_video(socket, :new, video_params) do
-    case Videos.create_video(video_params) do
-      {:ok, video} ->
-        {:noreply,
-         socket
-         |> put_flash(:info, "Video created successfully")
-         |> push_navigate(to: return_path(socket.assigns.return_to, video))}
-
-      {:error, %Ecto.Changeset{} = changeset} ->
-        {:noreply, assign(socket, form: to_form(changeset))}
-    end
-  end
-
-  defp return_path("index", _video), do: ~p"/videos"
 
   defp assign_frame(socket, frame) when is_integer(frame) do
     frame_string =
