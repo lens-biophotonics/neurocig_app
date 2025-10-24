@@ -31,11 +31,6 @@ defmodule AppWeb.VideoLive.Form do
             frame_path={@frame_path}
             corrected={@control_form[:show_corrected].value == "true"}
           />
-          <.async_result :if={@annotations} assign={@annotations}>
-            <:loading>Loading annotations...<.progress /></:loading>
-            <:failed :let={_failure}>there was an error loading the annotations</:failed>
-          </.async_result>
-
           <.async_result :let={maxframe} :if={@maxframe} assign={@maxframe}>
             <div class="flex">
               <div class="flex-1">
@@ -114,6 +109,11 @@ defmodule AppWeb.VideoLive.Form do
               /> Show corrected
             </.label>
           </.fieldset>
+          <br />
+          <.async_result :if={@loading && @loading.result == true} assign={@loading}>
+            Loading annotations...<.progress />
+            <:failed :let={_failure}>there was an error loading the annotations</:failed>
+          </.async_result>
         </div>
 
         <div class="h-full overflow-y-auto">
@@ -223,7 +223,14 @@ defmodule AppWeb.VideoLive.Form do
        "show_keypoints" => "true",
        "show_corrected" => "true"
      })
-     |> assign(annotations: nil, corrections: [], frame: nil, video: nil, maxframe: nil)
+     |> assign(
+       annotations: nil,
+       corrections: [],
+       frame: nil,
+       video: nil,
+       maxframe: nil,
+       loading: nil
+     )
      |> apply_action(socket.assigns.live_action, params)}
   end
 
@@ -311,11 +318,13 @@ defmodule AppWeb.VideoLive.Form do
 
       if Phoenix.LiveView.connected?(socket) do
         socket
+        |> assign_async([:loading], fn -> {:ok, %{loading: true}} end)
         |> assign_async([:annotations, :maxframe], fn ->
           ann = Annotations.load_annotations(video)
 
           {:ok,
            %{
+             loading: false,
              annotations: apply_corrections_to_annotations(corrections, ann),
              maxframe: Enum.max(Map.keys(ann))
            }}
@@ -335,9 +344,11 @@ defmodule AppWeb.VideoLive.Form do
     socket =
       if annotations do
         socket
+        |> assign_async([:loading], fn -> {:ok, %{loading: true}} end)
         |> assign_async([:annotations], fn ->
           {:ok,
            %{
+             loading: false,
              annotations: apply_corrections_to_annotations(corrections, annotations)
            }}
         end)
