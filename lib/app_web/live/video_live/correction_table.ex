@@ -132,7 +132,6 @@ defmodule AppWeb.VideoLive.CorrectionTable do
           type="button"
           color="primary"
           size="sm"
-          class="mb-2"
           phx-click={JS.dispatch("submit", to: "#edit-correction-form")}
           phx-target={@myself}
         >
