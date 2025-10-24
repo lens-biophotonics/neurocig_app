@@ -17,7 +17,17 @@ defmodule AppWeb do
   those modules here.
   """
 
-  def static_paths, do: ~w(assets fonts images videos favicon.ico robots.txt)
+  require Config
+
+  def static_paths do
+    paths = ~w(assets fonts images favicon.ico robots.txt)
+
+    if Mix.env() == :dev do
+      paths ++ ~w(videos)
+    else
+      paths
+    end
+  end
 
   def router do
     quote do

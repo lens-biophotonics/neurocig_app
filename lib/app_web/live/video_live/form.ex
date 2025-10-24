@@ -299,7 +299,9 @@ defmodule AppWeb.VideoLive.Form do
       Integer.to_string(frame)
       |> String.pad_leading(5, "0")
 
-    frame_path = "/videos/#{socket.assigns.video.name}_frames/#{frame_string}.jpg"
+    video_path = Application.get_env(:app, :neurocig)[:video_serve_path]
+
+    frame_path = "#{video_path}/#{socket.assigns.video.name}_frames/#{frame_string}.jpg"
 
     socket
     |> assign(:frame, frame)

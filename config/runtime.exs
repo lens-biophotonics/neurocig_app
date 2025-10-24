@@ -20,7 +20,9 @@ if System.get_env("PHX_SERVER") do
   config :app, AppWeb.Endpoint, server: true
 end
 
-config :app, :neurocig, annotations_path: System.get_env("NEUROCIG_ANNOTATIONS_PATH")
+config :app, :neurocig,
+  annotations_path: System.get_env("NEUROCIG_ANNOTATIONS_PATH"),
+  video_serve_path: System.get_env("NEUROCIG_VIDEOS_SERVE_AT_PATH") || "/videos"
 
 if config_env() == :prod do
   database_url =
@@ -58,7 +60,7 @@ if config_env() == :prod do
   config :app, :dns_cluster_query, System.get_env("DNS_CLUSTER_QUERY")
 
   config :app, AppWeb.Endpoint,
-    url: [host: host, port: 443, scheme: "https"],
+    url: [host: host, port: 443, scheme: "https", path: System.get_env("NEUROCIG_SERVE_AT_PATH")],
     http: [
       # Enable IPv6 and bind on all interfaces.
       # Set it to  {0, 0, 0, 0, 0, 0, 0, 1} for local network only access.

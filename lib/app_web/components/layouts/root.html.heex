@@ -8,6 +8,12 @@
       {assigns[:page_title]}
     </.live_title>
     <link phx-track-static rel="stylesheet" href={~p"/assets/css/app.css"} />
+
+    <script>
+      window.__APP__  = window.__APP__ || {}
+
+      window.__APP__.pathPrefix = "<%= Application.get_env(:app, AppWeb.Endpoint)[:url][:path] %>"
+    </script>
     <script defer phx-track-static type="text/javascript" src={~p"/assets/js/app.js"}>
     </script>
     <script>

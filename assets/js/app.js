@@ -25,8 +25,10 @@ import { LiveSocket } from "phoenix_live_view"
 import { hooks as colocatedHooks } from "phoenix-colocated/app"
 import topbar from "../vendor/topbar"
 
+const { pathPrefix } = window.__APP__
+
 const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
-const liveSocket = new LiveSocket("/live", Socket, {
+const liveSocket = new LiveSocket(pathPrefix + "/live", Socket, {
     params: { _csrf_token: csrfToken },
     metadata: {
         keydown: (event, element) => {
