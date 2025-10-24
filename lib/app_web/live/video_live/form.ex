@@ -7,6 +7,8 @@ defmodule AppWeb.VideoLive.Form do
 
   alias App.Corrections
 
+  import Phoenix.Component
+
   @impl true
   def render(assigns) do
     ~H"""
@@ -22,25 +24,28 @@ defmodule AppWeb.VideoLive.Form do
             </:subtitle>
           </.header>
 
-          <div :if={@frame == nil}>Loading annotations... <.progress /></div>
-          <div :if={@frame && @annotations}>
-            <.video_frame
-              show_bb={@control_form[:show_bb].value == true}
-              show_keypoints={@control_form[:show_keypoints].value == true}
-              annotations={@annotations[@frame]}
-              frame_path={@frame_path}
-              corrected={@control_form[:show_corrected].value == "true"}
-            />
+          <.video_frame
+            show_bb={@control_form[:show_bb].value == true}
+            show_keypoints={@control_form[:show_keypoints].value == true}
+            annotations={@annotations && @annotations.ok? && (@annotations.result[@frame] || %{})}
+            frame_path={@frame_path}
+            corrected={@control_form[:show_corrected].value == "true"}
+          />
+          <.async_result :if={@annotations} assign={@annotations}>
+            <:loading>Loading annotations...<.progress /></:loading>
+            <:failed :let={_failure}>there was an error loading the annotations</:failed>
+          </.async_result>
+
+          <.async_result :let={maxframe} :if={@maxframe} assign={@maxframe}>
             <div class="flex">
               <div class="flex-1">
                 Time: <span>{Time.from_seconds_after_midnight(Integer.floor_div(@frame, 15))}</span>
-                / <span>{Time.from_seconds_after_midnight(Integer.floor_div(@maxframe, 15))}</span>
+                / <span>{Time.from_seconds_after_midnight(Integer.floor_div(maxframe, 15))}</span>
               </div>
 
-              <div class="flex-1 text-right">Frame: {@frame} / {@maxframe}</div>
+              <div class="flex-1 text-right">Frame: {@frame} / {maxframe}</div>
             </div>
-          </div>
-
+          </.async_result>
           <.form
             for={@control_form}
             id="control-form"
@@ -53,7 +58,7 @@ defmodule AppWeb.VideoLive.Form do
             form="control-form"
             field={@control_form[:frame]}
             min="1"
-            max={@maxframe}
+            max={@maxframe && @maxframe.ok? && @maxframe.result}
             value={@frame}
           />
           <div class="flex gap-4 items-center">
@@ -110,13 +115,14 @@ defmodule AppWeb.VideoLive.Form do
             </.label>
           </.fieldset>
         </div>
+
         <div class="h-full overflow-y-auto">
           <.header>Corrections</.header>
           <.live_component
             id="correction-table"
             module={AppWeb.VideoLive.CorrectionTable}
             frame={@frame}
-            maxframe={@maxframe}
+            maxframe={@maxframe && @maxframe.ok? && @maxframe.result}
             video={@video}
             corrections={@corrections}
             notify_changed={fn _ -> send(self(), :corrections_changed) end}
@@ -156,7 +162,7 @@ defmodule AppWeb.VideoLive.Form do
 
     ~H"""
     <div :if={@frame_path} tabindex="-1" phx-keydown="key_event">
-      <svg width="640" height="480" xmlns="http://www.w3.org/2000/svg">
+      <svg width="640" height="480" viewBox="0 0 640 480" xmlns="http://www.w3.org/2000/svg">
         <image href={@frame_path} />
         <text
           :for={{_mouse_id, ann} <- @annotations}
@@ -180,6 +186,15 @@ defmodule AppWeb.VideoLive.Form do
           stroke={@colors[@get_mouse_id.(ann)]}
           stroke-width="2"
         />
+        <rect
+          width="106"
+          height="92"
+          x="364"
+          y="139"
+          fill="none"
+          stroke-width="2"
+        >
+        </rect>
         <%= if @show_keypoints do %>
           <%= for {_mouse_id, ann} <- @annotations do %>
             <.keypoint cx={ann.nose_x} cy={ann.nose_y} color="yellow" />
@@ -208,19 +223,14 @@ defmodule AppWeb.VideoLive.Form do
        "show_keypoints" => "true",
        "show_corrected" => "true"
      })
-     |> assign(annotations: %{}, corrections: [], frame: nil, video: nil, maxframe: nil)
+     |> assign(annotations: nil, corrections: [], frame: nil, video: nil, maxframe: nil)
      |> apply_action(socket.assigns.live_action, params)}
   end
 
   defp apply_action(socket, :edit, %{"id" => id}) do
-    if Phoenix.LiveView.connected?(socket) do
-      socket
-      |> maybe_assign_video(id)
-      |> assign_corrections()
-      |> assign_frame(1)
-    else
-      socket
-    end
+    socket
+    |> maybe_assign_video(id)
+    |> assign_frame(1)
   end
 
   @impl Phoenix.LiveView
@@ -294,12 +304,25 @@ defmodule AppWeb.VideoLive.Form do
 
     if video.id != video_id do
       video = Videos.get_video!(video_id)
-      ann = Annotations.load_annotations(video)
+      corrections = Corrections.list_corrections_by_video(video)
 
-      socket
-      |> assign(:video, video)
-      |> assign(:annotations, ann)
-      |> assign(:maxframe, Enum.max(Map.keys(ann)))
+      socket =
+        assign(socket, video: video, corrections: corrections)
+
+      if Phoenix.LiveView.connected?(socket) do
+        socket
+        |> assign_async([:annotations, :maxframe], fn ->
+          ann = Annotations.load_annotations(video)
+
+          {:ok,
+           %{
+             annotations: apply_corrections_to_annotations(corrections, ann),
+             maxframe: Enum.max(Map.keys(ann))
+           }}
+        end)
+      else
+        socket
+      end
     else
       socket
     end
@@ -307,11 +330,28 @@ defmodule AppWeb.VideoLive.Form do
 
   defp assign_corrections(socket) do
     corrections = Corrections.list_corrections_by_video(socket.assigns.video)
-    annotations = reset_corrections(socket.assigns.annotations)
-    annotations = Enum.reduce(corrections, annotations, &apply_correction/2)
+    annotations = socket.assigns.annotations.result
+
+    socket =
+      if annotations do
+        socket
+        |> assign_async([:annotations], fn ->
+          {:ok,
+           %{
+             annotations: apply_corrections_to_annotations(corrections, annotations)
+           }}
+        end)
+      else
+        socket
+      end
 
     socket
-    |> assign(annotations: annotations, corrections: corrections)
+    |> assign(corrections: corrections)
+  end
+
+  defp apply_corrections_to_annotations(corrections, annotations) do
+    annotations = reset_corrections(annotations)
+    Enum.reduce(corrections, annotations, &apply_correction/2)
   end
 
   defp reset_corrections(annotations) do
