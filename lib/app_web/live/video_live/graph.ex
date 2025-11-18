@@ -4,11 +4,13 @@ defmodule AppWeb.VideoLive.Graph do
   def render(assigns) do
     ~H"""
     <div>
-      <div id={@id} phx-hook=".Graph" class="w-full h-70"></div>
+      <div id={"#{@id}"} phx-hook=".Graph" class="w-full">
+        <div id={"#{@id}-chart_div"}></div>
+        <div id={"#{@id}-range_div"}></div>
+      </div>
       <script :type={Phoenix.LiveView.ColocatedHook} name=".Graph">
         export default {
           mounted: function() {
-            this.frame = null
             this.cols = null
             this.view = null
             this.mouseId = null
@@ -22,11 +24,35 @@ defmodule AppWeb.VideoLive.Graph do
               }).then(data => {
                 this.dataTable = new google.visualization.DataTable(data, 0.6)
                 this.view = new google.visualization.DataView(this.dataTable)
-                this.chart = new google.visualization.LineChart(this.el)
+                this.chart = new google.visualization.ChartWrapper({
+                  chartType: 'LineChart',
+                  containerId: this.el.id + '-chart_div',
+                  options: {
+                    legend: {position: 'in'},
+                    chartArea: {width: '90%', height: '80%'},
+                    height: 400,
+                  }
+                })
+                this.dashboard = new google.visualization.Dashboard(this.el)
 
-                this.maxFrame = this.dataTable.getColumnRange(this.view.getColumnIndex('frame')).max
+                var rangeFilter = new google.visualization.ControlWrapper({
+                  controlType: 'ChartRangeFilter',
+                  containerId: this.el.id + '-range_div',
+                  options: {
+                    filterColumnLabel: 'frame',
+                    ui: {
+                      chartOptions: {
+                        chartArea: {width: '90%'},
+                        height: 80,
+                      }
+                    }
+                  }
+                })
+                rangeFilter.setState({range: {start: 1, end: 1000}})
 
-                this.setViewOptions(1, 1, ["bb_center_speed"])
+                this.dashboard.bind(rangeFilter, this.chart);
+
+                this.setViewOptions(1, ["bb_center_speed"])
               })
             })
             window.addEventListener("phx:setFrame", e => {
@@ -38,34 +64,18 @@ defmodule AppWeb.VideoLive.Graph do
             })
           },
 
-          setViewOptions: function(mouseId, frame, columns) {
+          setViewOptions: function(mouseId, columns) {
             const frameCol = this.dataTable.getColumnIndex('frame')
             const mouseCol = this.dataTable.getColumnIndex('mouse_id')
             this.mouseId = mouseId
             this.cols = columns
             var cols = columns.map((x) => this.dataTable.getColumnIndex(x))
 
-            const range = 500
-
-            var frameFrom = Math.min(frame - range / 2, this.maxFrame - range)
-            if (frameFrom < 0) frameFrom += range / 2
-            var frameTo = Math.min(frameFrom + range, this.maxFrame)
-
-            var rows = this.dataTable.getFilteredRows([
-              {column: mouseCol, value: mouseId},
-              {column: frameCol, minValue: frameFrom,  maxValue: frameTo}
-            ])
+            var rows = this.dataTable.getFilteredRows([{column: mouseCol, value: mouseId}])
             this.view.setRows(rows);
             this.view.setColumns([frameCol].concat(cols))
 
-            var options = {
-              legend: {
-                position: 'in'
-              },
-              chartArea: {width: '85%', height: '80%'},
-            };
-
-            this.chart.draw(this.view, options);
+            this.dashboard.draw(this.view);
           }
         }
       </script>
