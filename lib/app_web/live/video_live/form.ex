@@ -309,6 +309,7 @@ defmodule AppWeb.VideoLive.Form do
     socket
     |> assign(:frame, frame)
     |> assign(:frame_path, frame_path)
+    |> push_event("setFrame", %{id: "graph", frame: frame})
   end
 
   defp maybe_assign_video(socket, video_id) do
@@ -334,7 +335,7 @@ defmodule AppWeb.VideoLive.Form do
              maxframe: Enum.max(Map.keys(ann))
            }}
         end)
-        |> push_event("load-graph", %{id: "graph", video: video.name})
+        |> push_event("loadGraph", %{id: "graph", video: video.name})
       else
         socket
       end

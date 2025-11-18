@@ -7,9 +7,12 @@ defmodule AppWeb.VideoLive.Graph do
       <div id={@id} phx-hook=".Graph"></div>
       <script :type={Phoenix.LiveView.ColocatedHook} name=".Graph">
         export default {
-          mounted() {
-            this.frame = 1
-            window.addEventListener("phx:load-graph", e => {
+          mounted: function() {
+            this.frame = null
+            this.cols = null
+            this.view = null
+            this.mouseId = null
+            window.addEventListener("phx:loadGraph", e => {
               if(this.el.id != e.detail.id) {
                 return
               }
@@ -17,26 +20,49 @@ defmodule AppWeb.VideoLive.Graph do
               fetch(json_path).then((response) => {
                   return response.json()
               }).then(data => {
-                var dataTable = new google.visualization.DataTable(data, 0.6)
-                var view = new google.visualization.DataView(dataTable)
-                console.log(view)
+                this.dataTable = new google.visualization.DataTable(data, 0.6)
+                this.view = new google.visualization.DataView(this.dataTable)
+                this.chart = new google.visualization.LineChart(this.el)
 
-                const frameCol = view.getColumnIndex('frame')
-                const mouseCol = view.getColumnIndex('mouse_id')
+                this.maxFrame = this.dataTable.getColumnRange(this.view.getColumnIndex('frame')).max
 
-                view.setRows(view.getFilteredRows([{column: mouseCol, value: 1}, {column: frameCol, maxValue: 1000}]));
-                view.setColumns([frameCol, 4])
-
-                var options = {
-                  title: 'LineChart',
-                };
-
-                var chart = new google.visualization.LineChart(this.el);
-
-                chart.draw(view, options);
+                this.setViewOptions(1, 1, ["bb_height", "bb_width"])
               })
-
             })
+            window.addEventListener("phx:setFrame", e => {
+              if(this.el.id != e.detail.id) {
+                return
+              }
+              if(this.view == null) return
+              this.setViewOptions(this.mouseId, e.detail.frame, this.cols)
+            })
+          },
+
+          setViewOptions: function(mouseId, frame, columns) {
+            const frameCol = this.dataTable.getColumnIndex('frame')
+            const mouseCol = this.dataTable.getColumnIndex('mouse_id')
+            this.mouseId = mouseId
+            this.cols = columns
+            var cols = columns.map((x) => this.dataTable.getColumnIndex(x))
+
+            const range = 500
+
+            var frameFrom = Math.min(frame - range / 2, this.maxFrame - range)
+            if (frameFrom < 0) frameFrom += range / 2
+            var frameTo = Math.min(frameFrom + range, this.maxFrame)
+
+            var rows = this.dataTable.getFilteredRows([
+              {column: mouseCol, value: mouseId},
+              {column: frameCol, minValue: frameFrom,  maxValue: frameTo}
+            ])
+            this.view.setRows(rows);
+            this.view.setColumns([frameCol].concat(cols))
+
+            var options = {
+              title: 'LineChart',
+            };
+
+            this.chart.draw(this.view, options);
           }
         }
       </script>
