@@ -4,7 +4,7 @@ defmodule AppWeb.VideoLive.Graph do
   def render(assigns) do
     ~H"""
     <div>
-      <div id={@id} phx-hook=".Graph"></div>
+      <div id={@id} phx-hook=".Graph" class="w-full h-70"></div>
       <script :type={Phoenix.LiveView.ColocatedHook} name=".Graph">
         export default {
           mounted: function() {
@@ -26,7 +26,7 @@ defmodule AppWeb.VideoLive.Graph do
 
                 this.maxFrame = this.dataTable.getColumnRange(this.view.getColumnIndex('frame')).max
 
-                this.setViewOptions(1, 1, ["bb_height", "bb_width"])
+                this.setViewOptions(1, 1, ["bb_center_speed"])
               })
             })
             window.addEventListener("phx:setFrame", e => {
@@ -59,7 +59,10 @@ defmodule AppWeb.VideoLive.Graph do
             this.view.setColumns([frameCol].concat(cols))
 
             var options = {
-              title: 'LineChart',
+              legend: {
+                position: 'in'
+              },
+              chartArea: {width: '85%', height: '80%'},
             };
 
             this.chart.draw(this.view, options);

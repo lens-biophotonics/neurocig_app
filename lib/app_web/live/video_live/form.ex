@@ -113,6 +113,7 @@ defmodule AppWeb.VideoLive.Form do
               /> Show corrected
             </.label>
           </.fieldset>
+          <br />
           <.live_component
             id="graph"
             module={AppWeb.VideoLive.Graph}
