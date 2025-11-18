@@ -31,6 +31,10 @@ defmodule AppWeb.VideoLive.Form do
             frame_path={@frame_path}
             corrected={@control_form[:show_corrected].value == "true"}
           />
+          <.async_result :if={@loading && @loading.result == true} assign={@loading}>
+            Loading annotations...<.progress />
+            <:failed :let={_failure}>there was an error loading the annotations</:failed>
+          </.async_result>
           <.async_result :let={maxframe} :if={@maxframe} assign={@maxframe}>
             <div class="flex">
               <div class="flex-1">
@@ -109,11 +113,10 @@ defmodule AppWeb.VideoLive.Form do
               /> Show corrected
             </.label>
           </.fieldset>
-          <br />
-          <.async_result :if={@loading && @loading.result == true} assign={@loading}>
-            Loading annotations...<.progress />
-            <:failed :let={_failure}>there was an error loading the annotations</:failed>
-          </.async_result>
+          <.live_component
+            id="graph"
+            module={AppWeb.VideoLive.Graph}
+          />
         </div>
 
         <div class="h-full overflow-y-auto">
@@ -331,6 +334,7 @@ defmodule AppWeb.VideoLive.Form do
              maxframe: Enum.max(Map.keys(ann))
            }}
         end)
+        |> push_event("load-graph", %{id: "graph", video: video.name})
       else
         socket
       end

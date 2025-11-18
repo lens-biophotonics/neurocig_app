@@ -9,10 +9,17 @@
     </.live_title>
     <link phx-track-static rel="stylesheet" href={~p"/assets/css/app.css"} />
 
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js">
+    </script>
+
     <script>
+      google.charts.load('current', {packages: ['corechart']});
+
       window.__APP__  = window.__APP__ || {}
 
       window.__APP__.pathPrefix = "<%= Application.get_env(:app, AppWeb.Endpoint)[:url][:path] %>"
+
+      window.__APP__.videoPath = "<%= Application.get_env(:app, :neurocig)[:video_serve_path] %>"
     </script>
     <script defer phx-track-static type="text/javascript" src={~p"/assets/js/app.js"}>
     </script>
