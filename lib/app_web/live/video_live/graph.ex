@@ -24,7 +24,7 @@ defmodule AppWeb.VideoLive.Graph do
               }).then(data => {
                 this.dataTable = new google.visualization.DataTable(data, 0.6)
                 this.view = new google.visualization.DataView(this.dataTable)
-                this.chart = new google.visualization.ChartWrapper({
+                this.chartWrapper = new google.visualization.ChartWrapper({
                   chartType: 'LineChart',
                   containerId: this.el.id + '-chart_div',
                   options: {
@@ -33,6 +33,8 @@ defmodule AppWeb.VideoLive.Graph do
                     height: 300,
                   }
                 })
+                google.visualization.events.addListener(this.chartWrapper, 'select', () => this.selectHandler());
+
                 this.dashboard = new google.visualization.Dashboard(this.el)
 
                 var rangeFilter = new google.visualization.ControlWrapper({
@@ -50,7 +52,7 @@ defmodule AppWeb.VideoLive.Graph do
                 })
                 rangeFilter.setState({range: {start: 1, end: 1000}})
 
-                this.dashboard.bind(rangeFilter, this.chart);
+                this.dashboard.bind(rangeFilter, this.chartWrapper);
 
                 this.setViewOptions(1, ["bb_center_speed"])
               })
@@ -60,7 +62,7 @@ defmodule AppWeb.VideoLive.Graph do
                 return
               }
               if(this.view == null) return
-              this.setViewOptions(this.mouseId, e.detail.frame, this.cols)
+              this.setViewOptions(this.mouseId, this.cols)
             })
           },
 
@@ -76,6 +78,14 @@ defmodule AppWeb.VideoLive.Graph do
             this.view.setColumns([frameCol].concat(cols))
 
             this.dashboard.draw(this.view);
+          },
+
+          selectHandler: function() {
+            var selection = this.chartWrapper.getChart().getSelection()[0]
+            if (selection == null || selection.row == null) return
+            const dataTable = this.chartWrapper.getDataTable()
+            var frame = dataTable.getValue(selection.row, dataTable.getColumnIndex('frame'))
+            this.pushEvent("go_to_frame", {value: frame})
           }
         }
       </script>

@@ -280,8 +280,13 @@ defmodule AppWeb.VideoLive.Form do
   end
 
   @impl Phoenix.LiveView
-  def handle_event("go_to_frame", %{"value" => frame}, socket) do
+  def handle_event("go_to_frame", %{"value" => frame}, socket) when is_binary(frame) do
     {:noreply, assign_frame(socket, String.to_integer(frame))}
+  end
+
+  @impl Phoenix.LiveView
+  def handle_event("go_to_frame", %{"value" => frame}, socket) when is_integer(frame) do
+    {:noreply, assign_frame(socket, frame)}
   end
 
   @impl Phoenix.LiveView
