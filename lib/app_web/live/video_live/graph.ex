@@ -4,7 +4,7 @@ defmodule AppWeb.VideoLive.Graph do
   def render(assigns) do
     ~H"""
     <div>
-      <div id={"#{@id}"} phx-hook=".Graph" class="w-full">
+      <div id={"#{@id}"} phx-hook=".Graph">
         <div id={"#{@id}-chart_div"}></div>
         <div id={"#{@id}-range_div"}></div>
       </div>
@@ -30,7 +30,7 @@ defmodule AppWeb.VideoLive.Graph do
                   options: {
                     legend: {position: 'in'},
                     chartArea: {width: '90%', height: '80%'},
-                    height: 400,
+                    height: 300,
                   }
                 })
                 this.dashboard = new google.visualization.Dashboard(this.el)

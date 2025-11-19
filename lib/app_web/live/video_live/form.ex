@@ -13,16 +13,18 @@ defmodule AppWeb.VideoLive.Form do
   def render(assigns) do
     ~H"""
     <Layouts.app flash={@flash}>
-      <div class="grid grid-cols-2 gap-4 h-[92dvh]">
+      <div class="grid grid-cols-2 gap-4">
         <div>
-          <.header :if={@video}>
-            {@video.name}
-            <:subtitle>
-              To move frame by frame, click on the image then use the keyboard arrow keys
-              <kbd class="kbd">◀︎</kbd>
-              <kbd class="kbd">▶︎</kbd>.
-            </:subtitle>
-          </.header>
+          <.portal id="title-portal" target="#navbar-title">
+            <div class="flex gap-8 ml-2">
+              <div class="font-semibold flex-none">{@video.name}</div>
+              <div class="text-sm flex-1">
+                To move frame by frame, click on the image then use the keyboard arrow keys
+                <kbd class="kbd">◀︎</kbd>
+                <kbd class="kbd">▶︎</kbd>.
+              </div>
+            </div>
+          </.portal>
 
           <.video_frame
             show_bb={@control_form[:show_bb].value == true}
@@ -112,27 +114,35 @@ defmodule AppWeb.VideoLive.Form do
                 checked={@control_form[:show_corrected].value == "true"}
               /> Show corrected
             </.label>
+            <div class="flex-1" />
+            <.button
+              type="button"
+              phx-click="new_correction"
+              phx-target="#correction-table"
+            >
+              New correction
+            </.button>
           </.fieldset>
-          <br />
-          <.live_component
-            id="graph"
-            module={AppWeb.VideoLive.Graph}
-          />
         </div>
 
-        <div class="h-full overflow-y-auto">
-          <.header>Corrections</.header>
-          <.live_component
-            id="correction-table"
-            module={AppWeb.VideoLive.CorrectionTable}
-            frame={@frame}
-            maxframe={@maxframe && @maxframe.ok? && @maxframe.result}
-            video={@video}
-            corrections={@corrections}
-            notify_changed={fn _ -> send(self(), :corrections_changed) end}
-          />
+        <div>
+          <div class="h-170 overflow-y-auto">
+            <.live_component
+              id="correction-table"
+              module={AppWeb.VideoLive.CorrectionTable}
+              frame={@frame}
+              maxframe={@maxframe && @maxframe.ok? && @maxframe.result}
+              video={@video}
+              corrections={@corrections}
+              notify_changed={fn _ -> send(self(), :corrections_changed) end}
+            />
+          </div>
         </div>
       </div>
+      <.live_component
+        id="graph"
+        module={AppWeb.VideoLive.Graph}
+      />
     </Layouts.app>
     """
   end

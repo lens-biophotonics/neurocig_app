@@ -36,13 +36,14 @@ defmodule AppWeb.Layouts do
   def app(assigns) do
     ~H"""
     <header class="navbar px-4 sm:px-6 lg:px-8">
-      <div class="flex-1">
-        <a href="./" class="flex-1 flex w-fit items-center gap-2">
+      <div class="flex flex-1 gap-2">
+        <a href="./" class="flex items-center gap-2">
           <img src={~p"/images/logo.svg"} width="36" />
           <span class="text-sm font-semibold">Home</span>
         </a>
+        <div id="navbar-title" class="flex-1"></div>
       </div>
-      <div class="flex-none">
+      <div class="flex">
         <ul class="flex flex-column px-1 space-x-4 items-center">
           <li>
             <.theme_toggle />

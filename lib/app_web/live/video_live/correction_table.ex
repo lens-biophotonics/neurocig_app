@@ -12,15 +12,8 @@ defmodule AppWeb.VideoLive.CorrectionTable do
   @impl Phoenix.LiveComponent
   def render(assigns) do
     ~H"""
-    <div>
-      <.button
-        type="button"
-        phx-click="new_correction"
-        phx-target={@myself}
-      >
-        New correction
-      </.button>
-      <.table :if={@corrections} id="corrections-table" class="table-auto">
+    <div id={@id}>
+      <.table :if={@corrections} class="table-auto">
         <.thead>
           <.tr>
             <.th class="text-right w-2/10">frame</.th>
@@ -31,9 +24,6 @@ defmodule AppWeb.VideoLive.CorrectionTable do
           </.tr>
         </.thead>
         <.tbody>
-          <.tr :if={@edit_correction && @edit_correction.id == nil} class="items-center">
-            {correction_form(assigns)}
-          </.tr>
           <.tr :for={c <- @corrections}>
             <%= if @edit_correction && @edit_correction.id == c.id do %>
               {correction_form(assigns)}
@@ -73,6 +63,16 @@ defmodule AppWeb.VideoLive.CorrectionTable do
               </.td>
             <% end %>
           </.tr>
+          <.tr :if={@edit_correction && @edit_correction.id == nil} class="items-center">
+            {correction_form(assigns)}
+          </.tr>
+          <.tr>
+            <.th class="text-right w-2/10">frame</.th>
+            <.th class="text-right w-1/10">time</.th>
+            <.th class="text-right w-1/10">from</.th>
+            <.th class="text-right w-1/10">to</.th>
+            <.th class="text-right w-2/10"></.th>
+          </.tr>
         </.tbody>
       </.table>
     </div>
@@ -81,7 +81,7 @@ defmodule AppWeb.VideoLive.CorrectionTable do
 
   defp correction_form(assigns) do
     ~H"""
-    <.td class="text-right">
+    <.td class="text-right" id="correction-form">
       <.form
         for={@edit_correction_form}
         id="edit-correction-form"
@@ -162,6 +162,7 @@ defmodule AppWeb.VideoLive.CorrectionTable do
         edit_correction_form:
           to_form(Correction.changeset(corr, %{"frame" => socket.assigns.frame}))
       )
+      |> push_event("scroll-to-bottom", %{id: "correction-table"})
 
     {:noreply, socket}
   end
