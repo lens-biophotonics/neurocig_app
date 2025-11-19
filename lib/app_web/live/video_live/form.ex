@@ -140,8 +140,8 @@ defmodule AppWeb.VideoLive.Form do
         </div>
       </div>
       <.live_component
-        id="graph"
-        module={AppWeb.VideoLive.Graph}
+        id="chart"
+        module={AppWeb.VideoLive.Chart}
       />
     </Layouts.app>
     """
@@ -325,7 +325,7 @@ defmodule AppWeb.VideoLive.Form do
     socket
     |> assign(:frame, frame)
     |> assign(:frame_path, frame_path)
-    |> push_event("setFrame", %{id: "graph", frame: frame})
+    |> push_event("setFrame", %{id: "chart", frame: frame})
   end
 
   defp maybe_assign_video(socket, video_id) do
@@ -351,7 +351,7 @@ defmodule AppWeb.VideoLive.Form do
              maxframe: Enum.max(Map.keys(ann))
            }}
         end)
-        |> push_event("loadGraph", %{id: "graph", video: video.name})
+        |> push_event("loadChart", %{id: "chart", video: video.name})
       else
         socket
       end

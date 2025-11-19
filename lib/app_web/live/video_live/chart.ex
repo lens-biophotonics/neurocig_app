@@ -1,20 +1,20 @@
-defmodule AppWeb.VideoLive.Graph do
+defmodule AppWeb.VideoLive.Chart do
   use AppWeb, :live_component
 
   def render(assigns) do
     ~H"""
     <div>
-      <div id={"#{@id}"} phx-hook=".Graph">
+      <div id={"#{@id}"} phx-hook=".Chart">
         <div id={"#{@id}-chart_div"}></div>
         <div id={"#{@id}-range_div"}></div>
       </div>
-      <script :type={Phoenix.LiveView.ColocatedHook} name=".Graph">
+      <script :type={Phoenix.LiveView.ColocatedHook} name=".Chart">
         export default {
           mounted: function() {
             this.cols = null
             this.view = null
             this.mouseId = null
-            window.addEventListener("phx:loadGraph", e => {
+            window.addEventListener("phx:loadChart", e => {
               if(this.el.id != e.detail.id) {
                 return
               }
