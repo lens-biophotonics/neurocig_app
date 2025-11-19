@@ -31,6 +31,8 @@ defmodule AppWeb.VideoLive.Chart do
                     legend: {position: 'in'},
                     chartArea: {width: '90%', height: '80%'},
                     height: 300,
+                    crosshair: {trigger: 'selection'},
+                    pointSize: 3,
                   }
                 })
                 google.visualization.events.addListener(this.chartWrapper, 'select', () => this.selectHandler());
@@ -46,15 +48,16 @@ defmodule AppWeb.VideoLive.Chart do
                       chartOptions: {
                         chartArea: {width: '90%'},
                         height: 80,
+                        hAxis: {viewWindow: { min: 0}},
                       }
                     }
                   }
                 })
-                rangeFilter.setState({range: {start: 1, end: 1000}})
+                rangeFilter.setState({range: {start: 0, end: 10}})
 
                 this.dashboard.bind(rangeFilter, this.chartWrapper);
 
-                this.setViewOptions(1, ["bb_center_speed"])
+                this.setViewOptions(1, ["bb_center_x"])
               })
             })
             window.addEventListener("phx:setFrame", e => {
@@ -62,7 +65,8 @@ defmodule AppWeb.VideoLive.Chart do
                 return
               }
               if(this.view == null) return
-              this.setViewOptions(this.mouseId, this.cols)
+
+              this.updateCrosshair(e.detail.frame)
             })
           },
 
@@ -81,12 +85,20 @@ defmodule AppWeb.VideoLive.Chart do
           },
 
           selectHandler: function() {
-            var selection = this.chartWrapper.getChart().getSelection()[0]
-            if (selection == null || selection.row == null) return
+            var selection = this.chartWrapper.getChart().getSelection()
+            if (selection == null || selection[0].row == null) return
             const dataTable = this.chartWrapper.getDataTable()
-            var frame = dataTable.getValue(selection.row, dataTable.getColumnIndex('frame'))
+            var frame = dataTable.getValue(selection[0].row, dataTable.getColumnIndex('frame'))
             this.pushEvent("go_to_frame", {value: frame})
-          }
+          },
+
+          updateCrosshair: function(frame) {
+              const dataTable = this.chartWrapper.getDataTable()
+              const frameCol = dataTable.getColumnIndex('frame')
+              const row = dataTable.getFilteredRows([{column: frameCol, value: frame}])[0]
+
+              this.chartWrapper.getChart().setSelection([{row: row, col: 1}])
+          },
         }
       </script>
     </div>
