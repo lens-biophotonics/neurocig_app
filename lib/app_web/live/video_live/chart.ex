@@ -4,7 +4,13 @@ defmodule AppWeb.VideoLive.Chart do
   def render(assigns) do
     ~H"""
     <div>
-      <div id={"#{@id}"} phx-hook=".Chart" class="relative h-[380px]">
+      <div
+        id={"#{@id}"}
+        phx-hook=".Chart"
+        class="relative h-[380px]"
+        tabindex="-1"
+        phx-keydown="key_event"
+      >
         <div id={"#{@id}-shade_div"} style="w-full absolute top-0 left-0"></div>
         <div id={"#{@id}-chart_div"} class="w-full absolute top-0 left-0"></div>
         <div id={"#{@id}-range_div"} class="w-full absolute top-[300px] left-0"></div>
