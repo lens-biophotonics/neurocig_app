@@ -4,9 +4,10 @@ defmodule AppWeb.VideoLive.Chart do
   def render(assigns) do
     ~H"""
     <div>
-      <div id={"#{@id}"} phx-hook=".Chart">
-        <div id={"#{@id}-chart_div"}></div>
-        <div id={"#{@id}-range_div"}></div>
+      <div id={"#{@id}"} phx-hook=".Chart" class="relative h-[380px]">
+        <div id={"#{@id}-shade_div"} style="w-full absolute top-0 left-0"></div>
+        <div id={"#{@id}-chart_div"} class="w-full absolute top-0 left-0"></div>
+        <div id={"#{@id}-range_div"} class="w-full absolute top-[300px] left-0"></div>
       </div>
       <script :type={Phoenix.LiveView.ColocatedHook} name=".Chart">
         export default {
@@ -33,9 +34,14 @@ defmodule AppWeb.VideoLive.Chart do
                     height: 300,
                     crosshair: {trigger: 'selection'},
                     pointSize: 3,
+                    backgroundColor: "transparent"
                   }
                 })
                 google.visualization.events.addListener(this.chartWrapper, 'select', () => this.selectHandler());
+
+                google.visualization.events.addListener(this.chartWrapper, 'ready', (e) => {
+                    this.drawShade(e)
+                })
 
                 this.dashboard = new google.visualization.Dashboard(this.el)
 
@@ -53,11 +59,12 @@ defmodule AppWeb.VideoLive.Chart do
                     }
                   }
                 })
-                rangeFilter.setState({range: {start: 0, end: 10}})
+
+                rangeFilter.setState({range: {start: 0, end: 2000}})
 
                 this.dashboard.bind(rangeFilter, this.chartWrapper);
 
-                this.setViewOptions(1, ["bb_center_x"])
+                this.setViewOptions(4, ["bb_center_x_speed"])
               })
             })
             window.addEventListener("phx:setFrame", e => {
@@ -99,6 +106,41 @@ defmodule AppWeb.VideoLive.Chart do
 
               this.chartWrapper.getChart().setSelection([{row: row, col: 1}])
           },
+
+          drawShade: function(e) {
+            const shadeMin = -17.74
+            const shadeMax = 17.73
+            const shade = new google.visualization.DataTable();
+            shade.addColumn('number', 'x');
+            shade.addColumn('number', 'low');
+            shade.addColumn('number', 'high');
+
+            // Only two rows defining horizontal region:
+            shade.addRow([0, shadeMin, shadeMax - shadeMin]);
+            shade.addRow([999, shadeMin, shadeMax - shadeMin]);
+
+            const shadeOptions = {
+              legend: 'none',
+              hAxis: { textPosition: 'none', gridlines: { color: 'transparent' } },
+              vAxis: { textPosition: 'none', gridlines: { color: 'transparent' } },
+              series: {
+                0: { type: 'area', color: '#a0a0a0', lineWidth: 0 },
+                1: { type: 'area', color: '#a0a0a0', lineWidth: 0 }
+              },
+              isStacked: true,
+              height: 300,
+              chartArea: {width: '90%', height: '80%'},
+              vAxis: {
+                viewWindow: {
+                  min: e.getChartLayoutInterface().getVAxisValue(30.5),
+                  max: e.getChartLayoutInterface().getVAxisValue(269.5)
+                }
+              }
+            }
+
+            const shadeChart = new google.visualization.AreaChart(document.getElementById(this.el.id + '-shade_div'))
+            shadeChart.draw(shade, shadeOptions);
+          }
         }
       </script>
     </div>
