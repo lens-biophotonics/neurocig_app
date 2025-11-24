@@ -128,7 +128,13 @@ defmodule AppWeb.VideoLive.Chart do
             const shadeOptions = {
               legend: 'none',
               hAxis: { textPosition: 'none', gridlines: { color: 'transparent' } },
-              vAxis: { textPosition: 'none', gridlines: { color: 'transparent' } },
+              vAxis: {
+                textPosition: 'none', gridlines: { color: 'transparent' },
+                viewWindow: {
+                  min: e.getChartLayoutInterface().getVAxisValue(30.5),
+                  max: e.getChartLayoutInterface().getVAxisValue(269.5)
+                }
+              },
               series: {
                 0: { type: 'area', color: '#a0a0a0', lineWidth: 0 },
                 1: { type: 'area', color: '#a0a0a0', lineWidth: 0 }
@@ -136,12 +142,6 @@ defmodule AppWeb.VideoLive.Chart do
               isStacked: true,
               height: 300,
               chartArea: {width: '90%', height: '80%'},
-              vAxis: {
-                viewWindow: {
-                  min: e.getChartLayoutInterface().getVAxisValue(30.5),
-                  max: e.getChartLayoutInterface().getVAxisValue(269.5)
-                }
-              }
             }
 
             const shadeChart = new google.visualization.AreaChart(document.getElementById(this.el.id + '-shade_div'))
