@@ -11,6 +11,16 @@ defmodule AppWeb.VideoLive.Form do
 
   @impl true
   def render(assigns) do
+    assigns =
+      assign(assigns,
+        chart_options: [
+          "bb_center_x_speed",
+          "bb_center_y_speed",
+          "bb_center_r_speed",
+          "bb_center_theta_speed"
+        ]
+      )
+
     ~H"""
     <Layouts.app flash={@flash}>
       <div class="grid grid-cols-2 gap-4">
@@ -123,6 +133,22 @@ defmodule AppWeb.VideoLive.Form do
               New correction
             </.button>
           </.fieldset>
+          <div class="flex gap-2">
+            <.input
+              type="select"
+              form="control-form"
+              field={@control_form[:mouse]}
+              options={1..5}
+              label="Mouse"
+            />
+            <.input
+              type="select"
+              form="control-form"
+              field={@control_form[:metric]}
+              options={@chart_options}
+              label="Metric"
+            />
+          </div>
         </div>
 
         <div>
@@ -262,6 +288,17 @@ defmodule AppWeb.VideoLive.Form do
   @impl Phoenix.LiveView
   def handle_event("control_change", %{"_target" => ["frame"], "frame" => frame}, socket) do
     {:noreply, assign_frame(socket, String.to_integer(frame))}
+  end
+
+  @impl Phoenix.LiveView
+  def handle_event(
+        "control_change",
+        %{"_target" => [target], "mouse" => mouse, "metric" => chart} = params,
+        socket
+      )
+      when target in ["mouse", "metric"] do
+    socket = set_chart(socket, mouse, chart)
+    {:noreply, assign_control_form(socket, params)}
   end
 
   @impl Phoenix.LiveView
@@ -456,5 +493,9 @@ defmodule AppWeb.VideoLive.Form do
       |> put_in(["go_to_time"], Map.get(params, "go_to_time", "00:00:00"))
 
     assign(socket, control_form: to_form(params))
+  end
+
+  defp set_chart(socket, mouse, chart) do
+    push_event(socket, "setChart", %{id: "chart", mouse: String.to_integer(mouse), chart: chart})
   end
 end

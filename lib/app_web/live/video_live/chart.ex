@@ -21,6 +21,7 @@ defmodule AppWeb.VideoLive.Chart do
             this.cols = null
             this.view = null
             this.mouseId = null
+            this.frame = 1
             window.addEventListener("phx:loadChart", e => {
               if(this.el.id != e.detail.id) {
                 return
@@ -70,7 +71,7 @@ defmodule AppWeb.VideoLive.Chart do
 
                 this.dashboard.bind(rangeFilter, this.chartWrapper);
 
-                this.setViewOptions(4, ["bb_center_x_speed"])
+                this.setViewOptions(1, ["bb_center_x_speed"])
               })
             })
             window.addEventListener("phx:setFrame", e => {
@@ -79,7 +80,17 @@ defmodule AppWeb.VideoLive.Chart do
               }
               if(this.view == null) return
 
-              this.updateCrosshair(e.detail.frame)
+              this.frame = e.detail.frame
+              this.updateCrosshair(this.frame)
+            })
+
+            window.addEventListener("phx:setChart", e => {
+              console.log(e)
+              if(this.el.id != e.detail.id) {
+                return
+              }
+              this.setViewOptions(e.detail.mouse, [e.detail.chart])
+              this.updateCrosshair(this.frame)
             })
           },
 
