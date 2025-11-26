@@ -23,7 +23,14 @@ defmodule AppWeb.VideoLive.Form do
 
     ~H"""
     <Layouts.app flash={@flash}>
-      <div class="grid grid-cols-2 gap-4">
+      <div id="video_live_form" class="grid grid-cols-2 gap-4" phx-hook=".Form">
+        <script :type={Phoenix.LiveView.ColocatedHook} name=".Form">
+          export default {
+            mounted: function() {
+              document.getElementById("corrections_tab").checked = true
+            }
+          }
+        </script>
         <div>
           <.portal id="title-portal" target="#navbar-title">
             <div class="flex gap-8 ml-2">
@@ -151,17 +158,24 @@ defmodule AppWeb.VideoLive.Form do
         </div>
 
         <div>
-          <div class="h-170 overflow-y-auto">
-            <.live_component
-              id="correction-table"
-              module={AppWeb.VideoLive.CorrectionTable}
-              frame={@frame}
-              maxframe={@maxframe}
-              video={@video}
-              corrections={@corrections}
-              notify_changed={fn _ -> send(self(), :corrections_changed) end}
-            />
-          </div>
+          <.tabs border class="justify-center h-170 max-w-150 ">
+            <.tab id="corrections_tab" title="Corrections" type="radio" name="tabs" />
+            <.tab_content class="overflow-y-auto">
+              <.live_component
+                id="correction-table"
+                module={AppWeb.VideoLive.CorrectionTable}
+                frame={@frame}
+                maxframe={@maxframe}
+                video={@video}
+                corrections={@corrections}
+                notify_changed={fn _ -> send(self(), :corrections_changed) end}
+              />
+            </.tab_content>
+            <.tab id="behavior_tab" title="Behavior annotations" type="radio" name="tabs" />
+            <.tab_content>
+              behavior
+            </.tab_content>
+          </.tabs>
         </div>
       </div>
       <.live_component
@@ -271,7 +285,8 @@ defmodule AppWeb.VideoLive.Form do
        frame: nil,
        video: nil,
        maxframe: nil,
-       loading: nil
+       loading: nil,
+       tab: "corrections_tab"
      )
      |> apply_action(socket.assigns.live_action, params)}
   end
