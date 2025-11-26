@@ -37,7 +37,7 @@ defmodule AppWeb.Layouts do
     ~H"""
     <header class="navbar px-4 sm:px-6 lg:px-8">
       <div class="flex flex-1 gap-2">
-        <a href="./" class="flex items-center gap-2">
+        <a href={~p"/"} class="flex items-center gap-2">
           <img src={~p"/images/logo.svg"} width="36" />
           <span class="text-sm font-semibold">Home</span>
         </a>

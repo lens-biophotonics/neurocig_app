@@ -20,7 +20,12 @@ defmodule App.Corrections.Correction do
       end
 
     correction
-    |> cast(to_integers(attrs), [:video_id, :frame, :mouse_from, :mouse_to])
+    |> cast(App.Utils.to_integers(attrs, ["frame", "mouse_from", "mouse_to"]), [
+      :video_id,
+      :frame,
+      :mouse_from,
+      :mouse_to
+    ])
     |> validate_required([:video_id, :frame, :mouse_from, :mouse_to], message: "error")
     |> validate_mouse_ids()
     |> unique_constraint([:video_id, :frame, :mouse_from, :mouse_to],
@@ -35,22 +40,6 @@ defmodule App.Corrections.Correction do
     else
       changeset
     end
-  end
-
-  defp to_integers(attrs) do
-    Map.new(attrs, fn {k, v} ->
-      case k do
-        k when k in ["frame", "mouse_from", "mouse_to"] ->
-          case v do
-            "" -> {k, nil}
-            v when is_binary(v) -> {k, String.to_integer(v)}
-            _ -> {k, v}
-          end
-
-        _ ->
-          {k, v}
-      end
-    end)
   end
 
   defp sort_mice(attrs) do

@@ -1,4 +1,5 @@
 defmodule AppWeb.VideoLive.Form do
+  alias App.Behavior
   alias App.Annotations
   use AppWeb, :live_view
 
@@ -27,7 +28,7 @@ defmodule AppWeb.VideoLive.Form do
         <script :type={Phoenix.LiveView.ColocatedHook} name=".Form">
           export default {
             mounted: function() {
-              document.getElementById("corrections_tab").checked = true
+              document.getElementById("corrections-tab").checked = true
             }
           }
         </script>
@@ -130,14 +131,6 @@ defmodule AppWeb.VideoLive.Form do
                 checked={@control_form[:show_corrected].value == "true"}
               /> Show corrected
             </.label>
-            <div class="flex-1" />
-            <.button
-              type="button"
-              phx-click="new_correction"
-              phx-target="#correction-table"
-            >
-              New correction
-            </.button>
           </.fieldset>
           <div class="flex gap-2">
             <.input
@@ -158,22 +151,52 @@ defmodule AppWeb.VideoLive.Form do
         </div>
 
         <div>
-          <.tabs border class="justify-center h-170 max-w-150 ">
-            <.tab id="corrections_tab" title="Corrections" type="radio" name="tabs" />
-            <.tab_content class="overflow-y-auto">
+          <.tabs border class="justify-center max-w-150">
+            <.tab id="corrections-tab" title="Corrections" type="radio" name="tabs" />
+            <.tab_content>
+              <div class="flex justify-center p-4">
+                <.button
+                  type="button"
+                  color="primary"
+                  phx-click="new_correction"
+                  phx-target="#corrections-table"
+                >
+                  New correction
+                </.button>
+              </div>
+              <div class="h-170 overflow-y-auto">
+                <.live_component
+                  id="corrections-table"
+                  module={AppWeb.VideoLive.CorrectionTable}
+                  frame={@frame}
+                  maxframe={@maxframe}
+                  video={@video}
+                  corrections={@corrections}
+                  notify_changed={fn _ -> send(self(), :corrections_changed) end}
+                />
+              </div>
+            </.tab_content>
+            <.tab id="behavior-tab" title="Behavior annotations" type="radio" name="tabs" />
+            <.tab_content>
+              <div class="flex justify-center p-4">
+                <.button
+                  type="button"
+                  color="primary"
+                  phx-click="new_annotation"
+                  phx-target="#behavior-annotations-table"
+                >
+                  New behavior annotation
+                </.button>
+              </div>
               <.live_component
-                id="correction-table"
-                module={AppWeb.VideoLive.CorrectionTable}
+                id="behavior-annotations-table"
+                module={AppWeb.VideoLive.BehaviorTable}
                 frame={@frame}
                 maxframe={@maxframe}
                 video={@video}
-                corrections={@corrections}
-                notify_changed={fn _ -> send(self(), :corrections_changed) end}
+                annotations={@behavior_annotations}
+                notify_changed={fn _ -> send(self(), :behavior_annotations_changed) end}
               />
-            </.tab_content>
-            <.tab id="behavior_tab" title="Behavior annotations" type="radio" name="tabs" />
-            <.tab_content>
-              behavior
             </.tab_content>
           </.tabs>
         </div>
@@ -282,6 +305,7 @@ defmodule AppWeb.VideoLive.Form do
      |> assign(
        annotations: nil,
        corrections: [],
+       behavior_annotations: [],
        frame: nil,
        video: nil,
        maxframe: nil,
@@ -306,6 +330,11 @@ defmodule AppWeb.VideoLive.Form do
   @impl Phoenix.LiveView
   def handle_info(:corrections_changed, socket) do
     {:noreply, assign_corrections(socket)}
+  end
+
+  @impl Phoenix.LiveView
+  def handle_info(:behavior_annotations_changed, socket) do
+    {:noreply, assign_behavior_annotations(socket)}
   end
 
   @impl Phoenix.LiveView
@@ -396,7 +425,12 @@ defmodule AppWeb.VideoLive.Form do
       corrections = Corrections.list_corrections_by_video(video)
 
       socket
-      |> assign(video: video, corrections: corrections, loading: true)
+      |> assign(
+        video: video,
+        corrections: corrections,
+        loading: true
+      )
+      |> assign_behavior_annotations()
       |> start_async(:my_async_assigns, fn ->
         ann = Annotations.load_annotations(video)
 
@@ -473,6 +507,11 @@ defmodule AppWeb.VideoLive.Form do
         end
       end
     )
+  end
+
+  defp assign_behavior_annotations(socket) do
+    behavior_annotations = Behavior.list_behavior_annotations_by_video(socket.assigns.video)
+    assign(socket, behavior_annotations: behavior_annotations)
   end
 
   defp inc_frame(socket) do

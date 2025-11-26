@@ -13,14 +13,15 @@ defmodule AppWeb.Router do
   scope "/", AppWeb do
     pipe_through :browser
 
-    get "/", RedirectController, :redirect_to_videos
-  end
-
-  scope "/", AppWeb do
-    pipe_through :browser
+    live "/", HomeLive.Index, :index
 
     live "/videos", VideoLive.Index, :index
     live "/videos/:id", VideoLive.Form, :edit
+
+    live "/behavior/type_strings", TypeStringLive.Index, :index
+    live "/behavior/type_strings/new", TypeStringLive.Form, :new
+    live "/behavior/type_strings/:id", TypeStringLive.Show, :show
+    live "/behavior/type_strings/:id/edit", TypeStringLive.Form, :edit
   end
 
   # Other scopes may use custom stacks.

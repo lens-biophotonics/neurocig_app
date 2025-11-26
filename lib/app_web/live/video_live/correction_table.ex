@@ -13,7 +13,7 @@ defmodule AppWeb.VideoLive.CorrectionTable do
   def render(assigns) do
     ~H"""
     <div id={@id}>
-      <.table :if={@corrections} class="table-auto">
+      <.table :if={@corrections} class="w-full">
         <.thead>
           <.tr>
             <.th class="text-right w-2/10">frame</.th>
@@ -66,13 +66,15 @@ defmodule AppWeb.VideoLive.CorrectionTable do
           <.tr :if={@edit_correction && @edit_correction.id == nil} class="items-center">
             {correction_form(assigns)}
           </.tr>
-          <.tr>
-            <.th class="text-right w-2/10">frame</.th>
-            <.th class="text-right w-1/10">time</.th>
-            <.th class="text-right w-1/10">from</.th>
-            <.th class="text-right w-1/10">to</.th>
-            <.th class="text-right w-2/10"></.th>
-          </.tr>
+          <tfoot>
+            <.tr>
+              <.th class="text-right w-2/10">frame</.th>
+              <.th class="text-right w-1/10">time</.th>
+              <.th class="text-right w-1/10">from</.th>
+              <.th class="text-right w-1/10">to</.th>
+              <.th class="text-right w-2/10"></.th>
+            </.tr>
+          </tfoot>
         </.tbody>
       </.table>
     </div>
@@ -162,7 +164,7 @@ defmodule AppWeb.VideoLive.CorrectionTable do
         edit_correction_form:
           to_form(Correction.changeset(corr, %{"frame" => socket.assigns.frame}))
       )
-      |> push_event("scroll-to-bottom", %{id: "correction-table"})
+      |> push_event("scroll-to-bottom", %{id: socket.assigns.id})
 
     {:noreply, socket}
   end
