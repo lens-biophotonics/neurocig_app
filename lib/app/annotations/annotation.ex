@@ -16,5 +16,6 @@ defmodule App.Annotations.Annotation do
             earR_x: nil,
             earR_y: nil,
             tailB_x: nil,
-            tailB_y: nil
+            tailB_y: nil,
+            charts: %{}
 end

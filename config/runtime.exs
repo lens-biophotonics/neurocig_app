@@ -22,6 +22,7 @@ end
 
 config :app, :neurocig,
   annotations_path: System.get_env("NEUROCIG_ANNOTATIONS_PATH"),
+  charts_path: System.get_env("NEUROCIG_CHARTS_PATH"),
   video_serve_path: System.get_env("NEUROCIG_VIDEOS_SERVE_AT_PATH") || "/videos"
 
 if config_env() == :prod do

@@ -37,26 +37,25 @@ defmodule AppWeb.VideoLive.Form do
           </.portal>
 
           <.video_frame
-            show_bb={@control_form[:show_bb].value == true}
-            show_keypoints={@control_form[:show_keypoints].value == true}
-            annotations={@annotations && @annotations.ok? && (@annotations.result[@frame] || %{})}
+            show_bb={@control_form[:show_bb].value == "true"}
+            show_keypoints={@control_form[:show_keypoints].value == "true"}
+            annotations={@annotations && (@annotations[@frame] || %{})}
             frame_path={@frame_path}
             corrected={@control_form[:show_corrected].value == "true"}
           />
-          <.async_result :if={@loading && @loading.result == true} assign={@loading}>
+          <div :if={@loading}>
             Loading annotations...<.progress />
-            <:failed :let={_failure}>there was an error loading the annotations</:failed>
-          </.async_result>
-          <.async_result :let={maxframe} :if={@maxframe} assign={@maxframe}>
+          </div>
+          <div :if={@maxframe}>
             <div class="flex">
               <div class="flex-1">
                 Time: <span>{Time.from_seconds_after_midnight(Integer.floor_div(@frame, 15))}</span>
-                / <span>{Time.from_seconds_after_midnight(Integer.floor_div(maxframe, 15))}</span>
+                / <span>{Time.from_seconds_after_midnight(Integer.floor_div(@maxframe, 15))}</span>
               </div>
 
-              <div class="flex-1 text-right">Frame: {@frame} / {maxframe}</div>
+              <div class="flex-1 text-right">Frame: {@frame} / {@maxframe}</div>
             </div>
-          </.async_result>
+          </div>
           <.form
             for={@control_form}
             id="control-form"
@@ -69,7 +68,7 @@ defmodule AppWeb.VideoLive.Form do
             form="control-form"
             field={@control_form[:frame]}
             min="1"
-            max={@maxframe && @maxframe.ok? && @maxframe.result}
+            max={@maxframe}
             value={@frame}
           />
           <div class="flex gap-4 items-center">
@@ -137,16 +136,16 @@ defmodule AppWeb.VideoLive.Form do
             <.input
               type="select"
               form="control-form"
-              field={@control_form[:mouse]}
+              field={@control_form[:mouse_id]}
               options={1..5}
               label="Mouse"
             />
             <.input
               type="select"
               form="control-form"
-              field={@control_form[:metric]}
+              field={@control_form[:chart_id]}
               options={@chart_options}
-              label="Metric"
+              label="Chart"
             />
           </div>
         </div>
@@ -157,7 +156,7 @@ defmodule AppWeb.VideoLive.Form do
               id="correction-table"
               module={AppWeb.VideoLive.CorrectionTable}
               frame={@frame}
-              maxframe={@maxframe && @maxframe.ok? && @maxframe.result}
+              maxframe={@maxframe}
               video={@video}
               corrections={@corrections}
               notify_changed={fn _ -> send(self(), :corrections_changed) end}
@@ -261,7 +260,10 @@ defmodule AppWeb.VideoLive.Form do
      |> assign_control_form(%{
        "show_bb" => "true",
        "show_keypoints" => "true",
-       "show_corrected" => "true"
+       "show_original" => "false",
+       "show_corrected" => "true",
+       "mouse_id" => "1",
+       "chart_id" => "bb_center_x_speed"
      })
      |> assign(
        annotations: nil,
@@ -281,29 +283,35 @@ defmodule AppWeb.VideoLive.Form do
   end
 
   @impl Phoenix.LiveView
+  def handle_async(:my_async_assigns, {:ok, new_assigns}, socket) do
+    socket = socket |> assign(new_assigns) |> setup_chart()
+    {:noreply, socket}
+  end
+
+  @impl Phoenix.LiveView
   def handle_info(:corrections_changed, socket) do
     {:noreply, assign_corrections(socket)}
   end
 
   @impl Phoenix.LiveView
-  def handle_event("control_change", %{"_target" => ["frame"], "frame" => frame}, socket) do
-    {:noreply, assign_frame(socket, String.to_integer(frame))}
-  end
+  def handle_event("control_change", %{"_target" => [target]} = params, socket) do
+    socket = assign_control_form(socket, params)
 
-  @impl Phoenix.LiveView
-  def handle_event(
-        "control_change",
-        %{"_target" => [target], "mouse" => mouse, "metric" => chart} = params,
+    socket =
+      if target in ["mouse_id", "chart_id", "show_original", "show_corrected"] do
+        setup_chart(socket)
+      else
         socket
-      )
-      when target in ["mouse", "metric"] do
-    socket = set_chart(socket, mouse, chart)
-    {:noreply, assign_control_form(socket, params)}
-  end
+      end
 
-  @impl Phoenix.LiveView
-  def handle_event("control_change", params, socket) do
-    {:noreply, assign_control_form(socket, params)}
+    socket =
+      if target == "frame" do
+        assign_frame(socket, String.to_integer(params["frame"]))
+      else
+        socket
+      end
+
+    {:noreply, socket}
   end
 
   @impl Phoenix.LiveView
@@ -372,45 +380,33 @@ defmodule AppWeb.VideoLive.Form do
       video = Videos.get_video!(video_id)
       corrections = Corrections.list_corrections_by_video(video)
 
-      socket =
-        assign(socket, video: video, corrections: corrections)
-
-      if Phoenix.LiveView.connected?(socket) do
-        socket
-        |> assign_async([:loading], fn -> {:ok, %{loading: true}} end)
-        |> assign_async([:annotations, :maxframe], fn ->
-          ann = Annotations.load_annotations(video)
-
-          {:ok,
-           %{
-             loading: false,
-             annotations: apply_corrections_to_annotations(corrections, ann),
-             maxframe: Enum.max(Map.keys(ann))
-           }}
-        end)
-        |> push_event("loadChart", %{id: "chart", video: video.name})
-      else
-        socket
-      end
-    else
       socket
+      |> assign(video: video, corrections: corrections, loading: true)
+      |> start_async(:my_async_assigns, fn ->
+        ann = Annotations.load_annotations(video)
+
+        %{
+          loading: false,
+          annotations: apply_corrections_to_annotations(corrections, ann),
+          maxframe: Enum.max(Map.keys(ann))
+        }
+      end)
     end
   end
 
   defp assign_corrections(socket) do
     corrections = Corrections.list_corrections_by_video(socket.assigns.video)
-    annotations = socket.assigns.annotations.result
+    annotations = socket.assigns.annotations
 
     socket =
       if annotations do
         socket
-        |> assign_async([:loading], fn -> {:ok, %{loading: true}} end)
-        |> assign_async([:annotations], fn ->
-          {:ok,
-           %{
-             loading: false,
-             annotations: apply_corrections_to_annotations(corrections, annotations)
-           }}
+        |> assign(:loading, true)
+        |> start_async(:my_async_assigns, fn ->
+          %{
+            loading: false,
+            annotations: apply_corrections_to_annotations(corrections, annotations)
+          }
         end)
       else
         socket
@@ -485,17 +481,54 @@ defmodule AppWeb.VideoLive.Form do
   defp assign_control_form(socket, params) do
     params =
       params
-      |> put_in(["show_bb"], Map.get(params, "show_bb", "false") |> String.to_existing_atom())
-      |> put_in(
-        ["show_keypoints"],
-        Map.get(params, "show_keypoints", "false") |> String.to_existing_atom()
-      )
       |> put_in(["go_to_time"], Map.get(params, "go_to_time", "00:00:00"))
 
     assign(socket, control_form: to_form(params))
   end
 
-  defp set_chart(socket, mouse, chart) do
-    push_event(socket, "setChart", %{id: "chart", mouse: String.to_integer(mouse), chart: chart})
+  defp setup_chart(socket) do
+    mouse_id = socket.assigns.control_form[:mouse_id].value |> String.to_integer()
+    chart_id = socket.assigns.control_form[:chart_id].value
+
+    type =
+      if(
+        socket.assigns.control_form[:show_corrected].value == "true",
+        do: :corrected,
+        else: :original
+      )
+
+    setup_chart(socket, mouse_id, chart_id, type)
+  end
+
+  defp setup_chart(socket, mouse_id, chart_id, type) do
+    payload =
+      %{
+        dataTable: %{
+          cols: [
+            %{id: "frame", label: "frame", type: "number"},
+            %{id: chart_id, label: "mouse #{mouse_id} - #{chart_id} - #{type}", type: "number"}
+          ],
+          rows: get_chart_rows(socket.assigns.annotations, mouse_id, chart_id, type)
+        }
+      }
+
+    push_event(socket, "setupChart", payload)
+  end
+
+  defp get_chart_rows(annotations, mouse_id, chart_id, type)
+       when is_integer(mouse_id) and type in [:original, :corrected] do
+    Enum.map(annotations, fn {frame, frame_map} ->
+      found_ann =
+        case type do
+          :original ->
+            frame_map[mouse_id]
+
+          :corrected ->
+            Enum.find(frame_map, fn {_k, x} -> x.new_mouse_id == mouse_id end) |> elem(1)
+        end
+
+      v = (found_ann && found_ann.charts[chart_id]) || nil
+      %{c: [%{v: frame}, %{v: v}]}
+    end)
   end
 end

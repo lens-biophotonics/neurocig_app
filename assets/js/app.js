@@ -47,7 +47,8 @@ window.addEventListener("phx:page-loading-stop", _info => topbar.hide())
 window.addEventListener("phx:scroll-to-bottom", e => { document.getElementById(e.detail.id).scrollIntoView(false) })
 
 // connect if there are any LiveViews on the page
-liveSocket.connect()
+// moved to google.charts.setOnLoadCallback
+// liveSocket.connect()
 
 // expose liveSocket on window for web console debug logs and latency simulation:
 // >> liveSocket.enableDebug()

@@ -17,9 +17,30 @@ defmodule App.Annotations do
       ])
       |> load_json_from_file()
 
-    Map.keys(json)
-    |> Enum.map(&String.to_integer/1)
-    |> Map.new(&{&1, get_annotations_for_frame(&1, json, video)})
+    annotations =
+      Map.keys(json)
+      |> Enum.map(&String.to_integer/1)
+      |> Map.new(&{&1, get_annotations_for_frame(&1, json, video)})
+
+    charts = load_charts(video)
+
+    Enum.reduce(charts, annotations, fn {frame, frame_map}, annotations ->
+      frame = String.to_integer(frame)
+
+      Enum.reduce(frame_map, annotations, fn {mouse_id, values}, annotations ->
+        update_in(annotations, [frame, String.to_integer(mouse_id)], fn ann ->
+          %{ann | charts: values}
+        end)
+      end)
+    end)
+  end
+
+  def load_charts(video) do
+    Path.join([
+      Application.get_env(:app, :neurocig)[:charts_path],
+      video.name <> "_charts.json"
+    ])
+    |> load_json_from_file()
   end
 
   def get_annotations_for_frame(frame, json, video) do
