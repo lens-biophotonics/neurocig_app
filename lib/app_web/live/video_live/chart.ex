@@ -22,6 +22,7 @@ defmodule AppWeb.VideoLive.Chart do
             this.frame = 1
 
             this.handleEvent("setupChart", (reply) => this.setupChart(reply))
+            this.handleEvent("updateCrosshair", (reply) => this.updateCrosshair(reply.frame))
 
             this.chartWrapper = new google.visualization.ChartWrapper({
               chartType: 'LineChart',
@@ -38,9 +39,7 @@ defmodule AppWeb.VideoLive.Chart do
 
             this.shadeChart = new google.visualization.AreaChart(document.getElementById(this.el.id + '-shade_div'))
 
-            console.log(this.chartWrapper)
-
-            // google.visualization.events.addListener(this.chartWrapper, 'select', () => this.selectHandler());
+            google.visualization.events.addListener(this.chartWrapper, 'select', () => this.selectHandler());
 
             google.visualization.events.addListener(this.chartWrapper, 'ready', (e) => {
                 this.drawShade()
@@ -68,25 +67,9 @@ defmodule AppWeb.VideoLive.Chart do
           },
 
           setupChart: function(reply) {
-            console.log(reply)
             this.dataTable = new google.visualization.DataTable(reply.dataTable, 0.6)
             this.dataTable.sort({column: 0, asc: true})
-            console.log(this.dataTable)
             this.dashboard.draw(this.dataTable)
-          },
-
-          setViewOptions: function(mouseId, columns) {
-            const frameCol = this.dataTable.getColumnIndex('frame')
-            const mouseCol = this.dataTable.getColumnIndex('mouse_id')
-            this.mouseId = mouseId
-            this.cols = columns
-            var cols = columns.map((x) => this.dataTable.getColumnIndex(x))
-
-            var rows = this.dataTable.getFilteredRows([{column: mouseCol, value: mouseId}])
-            this.view.setRows(rows);
-            this.view.setColumns([frameCol].concat(cols))
-
-            this.dashboard.draw(this.view);
           },
 
           selectHandler: function() {

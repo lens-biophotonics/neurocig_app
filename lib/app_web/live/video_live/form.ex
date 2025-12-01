@@ -519,6 +519,7 @@ defmodule AppWeb.VideoLive.Form do
 
     socket
     |> assign_frame(new_frame)
+    |> push_event("updateCrosshair", %{frame: new_frame})
   end
 
   defp dec_frame(socket) do
@@ -530,6 +531,7 @@ defmodule AppWeb.VideoLive.Form do
 
     socket
     |> assign_frame(new_frame)
+    |> push_event("updateCrosshair", %{frame: new_frame})
   end
 
   defp assign_control_form(socket, params) do
