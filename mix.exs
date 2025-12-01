@@ -68,7 +68,8 @@ defmodule App.MixProject do
       {:bandit, "~> 1.5"},
       # my deps
       {:tqdm, github: "sevenmind/tqdm_elixir"},
-      {:daisy_ui_components, "~> 0.9"}
+      {:daisy_ui_components, "~> 0.9"},
+      {:tidewave, "~> 0.5", only: :dev}
     ]
   end
 

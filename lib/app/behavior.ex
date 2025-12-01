@@ -25,7 +25,7 @@ defmodule App.Behavior do
   def list_behavior_annotations_by_video(%Video{} = video) do
     from(c in Annotation,
       where: ^video.id == c.video_id,
-      order_by: [c.frame, c.mouse_id]
+      order_by: [c.frame, c.mouse_id, c.start_stop]
     )
     |> Repo.all()
   end

@@ -57,7 +57,13 @@ defmodule AppWeb.VideoLive.Form do
           <div :if={@maxframe}>
             <div class="flex">
               <div class="flex-1">
-                Time: <span>{Time.from_seconds_after_midnight(Integer.floor_div(@frame, 15))}</span>
+                Time:
+                <span>
+                  {Time.from_seconds_after_midnight(
+                    Integer.floor_div(@frame - 1, 15),
+                    {(Integer.mod(@frame - 1, 15) * 1 / 15 * 1_000_000) |> trunc(), 3}
+                  )}
+                </span>
                 / <span>{Time.from_seconds_after_midnight(Integer.floor_div(@maxframe, 15))}</span>
               </div>
 
@@ -152,7 +158,13 @@ defmodule AppWeb.VideoLive.Form do
 
         <div>
           <.tabs border class="justify-center max-w-150">
-            <.tab id="corrections-tab" title="Corrections" type="radio" name="tabs" />
+            <.tab
+              id="corrections-tab"
+              title="Corrections"
+              type="radio"
+              name="tabs"
+              phx-click={JS.toggle(to: "#chart") |> JS.toggle(to: "#timeline")}
+            />
             <.tab_content>
               <div class="flex justify-center p-4">
                 <.button
@@ -176,7 +188,15 @@ defmodule AppWeb.VideoLive.Form do
                 />
               </div>
             </.tab_content>
-            <.tab id="behavior-tab" title="Behavior annotations" type="radio" name="tabs" />
+            <.tab
+              id="behavior-tab"
+              title="Behavior annotations"
+              type="radio"
+              name="tabs"
+              phx-click={
+                JS.toggle(to: "#chart") |> JS.toggle(to: "#timeline") |> JS.push("requestTimeline")
+              }
+            />
             <.tab_content>
               <div class="flex justify-center p-4">
                 <.button
@@ -188,15 +208,17 @@ defmodule AppWeb.VideoLive.Form do
                   New behavior annotation
                 </.button>
               </div>
-              <.live_component
-                id="behavior-annotations-table"
-                module={AppWeb.VideoLive.BehaviorTable}
-                frame={@frame}
-                maxframe={@maxframe}
-                video={@video}
-                annotations={@behavior_annotations}
-                notify_changed={fn _ -> send(self(), :behavior_annotations_changed) end}
-              />
+              <div class="h-170 overflow-y-auto">
+                <.live_component
+                  id="behavior-annotations-table"
+                  module={AppWeb.VideoLive.BehaviorTable}
+                  frame={@frame}
+                  maxframe={@maxframe}
+                  video={@video}
+                  annotations={@behavior_annotations}
+                  notify_changed={fn _ -> send(self(), :behavior_annotations_changed) end}
+                />
+              </div>
             </.tab_content>
           </.tabs>
         </div>
@@ -204,6 +226,11 @@ defmodule AppWeb.VideoLive.Form do
       <.live_component
         id="chart"
         module={AppWeb.VideoLive.Chart}
+      />
+      <.live_component
+        id="timeline"
+        module={AppWeb.VideoLive.Timeline}
+        class="hidden"
       />
     </Layouts.app>
     """
@@ -334,7 +361,8 @@ defmodule AppWeb.VideoLive.Form do
 
   @impl Phoenix.LiveView
   def handle_info(:behavior_annotations_changed, socket) do
-    {:noreply, assign_behavior_annotations(socket)}
+    socket = socket |> assign_behavior_annotations() |> setup_timeline()
+    {:noreply, socket}
   end
 
   @impl Phoenix.LiveView
@@ -395,6 +423,11 @@ defmodule AppWeb.VideoLive.Form do
   @impl Phoenix.LiveView
   def handle_event("key_event", _params, socket) do
     {:noreply, socket}
+  end
+
+  @impl Phoenix.LiveView
+  def handle_event("requestTimeline", _params, socket) do
+    {:noreply, setup_timeline(socket)}
   end
 
   @impl Phoenix.LiveView
@@ -517,16 +550,20 @@ defmodule AppWeb.VideoLive.Form do
   defp inc_frame(socket) do
     new_frame = socket.assigns.frame + 1
 
-    socket
-    |> assign_frame(new_frame)
-    |> push_event("updateCrosshair", %{frame: new_frame})
+    if new_frame > socket.assigns.maxframe do
+      socket
+    else
+      socket
+      |> assign_frame(new_frame)
+      |> push_event("updateCrosshair", %{frame: new_frame})
+    end
   end
 
   defp dec_frame(socket) do
     new_frame =
       case socket.assigns.frame do
         1 -> 1
-        _ -> socket.assigns.frame - 1
+        frame -> frame - 1
       end
 
     socket
@@ -554,6 +591,146 @@ defmodule AppWeb.VideoLive.Form do
       )
 
     setup_chart(socket, mouse_id, chart_id, type)
+  end
+
+  defp setup_timeline(socket) do
+    annotations = socket.assigns.behavior_annotations || []
+
+    # full horizontal axis length in frames (fallback to 13500)
+    full_length_frames = socket.assigns.maxframe || 13_500
+    full_length = frame_to_ms(full_length_frames)
+
+    # map behaviors to colors
+    behavior_strings = Behavior.list_type_strings() |> Enum.map(& &1.type_string)
+
+    palette = [
+      "#e6194b",
+      "#3cb44b",
+      "#ffe119",
+      "#4363d8",
+      "#f58231",
+      "#911eb4",
+      "#46f0f0",
+      "#f032e6",
+      "#bcf60c",
+      "#fabebe",
+      "#008080",
+      "#e6beff",
+      "#9a6324",
+      "#800000",
+      "#aaffc3",
+      "#808000",
+      "#000075",
+      "#808080"
+    ]
+
+    behavior_colors =
+      behavior_strings
+      |> Enum.with_index()
+      |> Enum.map(fn {b, i} -> {b, Enum.at(palette, rem(i, length(palette)))} end)
+      |> Enum.into(%{})
+
+    grouped = Enum.group_by(annotations, fn ann -> {ann.mouse_id, ann.behavior} end)
+
+    rows =
+      grouped
+      |> Enum.flat_map(fn {{mouse_id, behavior}, anns} ->
+        anns = Enum.sort_by(anns, & &1.frame)
+
+        {pairs, current} =
+          Enum.reduce(anns, {[], nil}, fn ann, {acc, cur} ->
+            case ann.start_stop do
+              "start" ->
+                {acc, ann.frame}
+
+              "stop" ->
+                if cur do
+                  color = behavior_colors[behavior] || "#999999"
+                  style = "fill-color:#{color};stroke-color:#{color}"
+
+                  row = %{
+                    c: [
+                      %{v: Integer.to_string(mouse_id)},
+                      %{v: behavior},
+                      %{v: style},
+                      %{v: frame_to_ms(cur)},
+                      %{v: frame_to_ms(ann.frame)}
+                    ]
+                  }
+
+                  {[row | acc], nil}
+                else
+                  {acc, nil}
+                end
+
+              _ ->
+                {acc, cur}
+            end
+          end)
+
+        pairs = Enum.reverse(pairs)
+
+        pairs =
+          case current do
+            nil ->
+              pairs
+
+            start_frame ->
+              color = behavior_colors[behavior] || "#999999"
+              style = "fill-color:#{color};stroke-color:#{color}"
+
+              pairs ++
+                [
+                  %{
+                    c: [
+                      %{v: Integer.to_string(mouse_id)},
+                      %{v: behavior},
+                      %{v: style},
+                      %{v: frame_to_ms(start_frame)},
+                      %{v: frame_to_ms(full_length_frames)}
+                    ]
+                  }
+                ]
+          end
+
+        pairs
+      end)
+
+    # ensure all mouse rows appear (1..5)
+    mouse_ids = 1..5
+
+    empty_rows =
+      mouse_ids
+      |> Enum.map(&Integer.to_string/1)
+      |> Enum.map(fn m ->
+        %{
+          c: [
+            %{v: m},
+            %{v: ""},
+            %{v: "fill-color:ffffff"},
+            %{v: frame_to_ms(full_length_frames)},
+            %{v: frame_to_ms(full_length_frames + 1)}
+          ]
+        }
+      end)
+
+    rows = rows ++ empty_rows
+
+    payload = %{
+      dataTable: %{
+        cols: [
+          %{id: "mouse_id", label: "Mouse", type: "string"},
+          %{id: "behavior", label: "Behavior", type: "string"},
+          %{id: "style", label: "style", type: "string", role: "style"},
+          %{id: "start", label: "start", type: "number"},
+          %{id: "end", label: "end", type: "number"}
+        ],
+        rows: rows
+      },
+      full_length: full_length
+    }
+
+    push_event(socket, "setupTimeline", payload)
   end
 
   defp setup_chart(socket, mouse_id, chart_id, type) do
@@ -586,5 +763,9 @@ defmodule AppWeb.VideoLive.Form do
       v = (found_ann && found_ann.charts[chart_id]) || nil
       %{c: [%{v: frame}, %{v: v}]}
     end)
+  end
+
+  defp frame_to_ms(frame) when frame > 0 do
+    trunc((frame - 1) / 15 * 1000)
   end
 end
