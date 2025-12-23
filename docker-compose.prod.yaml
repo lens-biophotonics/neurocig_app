@@ -21,6 +21,7 @@ services:
       - network1
     volumes:
       - ${NEUROCIG_ANNOTATIONS_PATH}:${NEUROCIG_ANNOTATIONS_PATH}
+      - ${NEUROCIG_CHARTS_PATH}:${NEUROCIG_CHARTS_PATH}
 
 networks:
   default:
