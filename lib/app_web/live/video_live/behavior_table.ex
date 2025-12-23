@@ -6,11 +6,7 @@ defmodule AppWeb.VideoLive.BehaviorTable do
 
   @impl Phoenix.LiveComponent
   def mount(socket) do
-    {:ok,
-     assign(socket,
-       edit_annotation: false,
-       type_strings: Behavior.list_type_strings() |> Enum.map(& &1.type_string)
-     )}
+    {:ok, assign(socket, edit_annotation: false)}
   end
 
   @impl Phoenix.LiveComponent
@@ -92,6 +88,9 @@ defmodule AppWeb.VideoLive.BehaviorTable do
   end
 
   defp behavior_form(assigns) do
+    assigns =
+      assign(assigns, type_strings: Behavior.list_type_strings() |> Enum.map(& &1.type_string))
+
     ~H"""
     <.td class="text-right" id="behavior-annotation-form" colspan="2">
       <.form
