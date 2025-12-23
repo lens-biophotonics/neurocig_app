@@ -733,7 +733,33 @@ defmodule AppWeb.VideoLive.Form do
     push_event(socket, "setupTimeline", payload)
   end
 
+  defp percentile(data, count, p) do
+    # Calculate the rank index (0-based)
+    rank = (count - 1) * p
+    lower_idx = floor(rank)
+    upper_idx = ceil(rank)
+    fraction = rank - lower_idx
+
+    lower_val = elem(data, lower_idx)
+    upper_val = elem(data, upper_idx)
+
+    # Linear interpolation between the two closest ranks
+    lower_val + (upper_val - lower_val) * fraction
+  end
+
   defp setup_chart(socket, mouse_id, chart_id, type) do
+    rows = get_chart_rows(socket.assigns.annotations, mouse_id, chart_id, type)
+
+    # Convert to tuple for O(1) access by index, which is more efficient
+    # than Enum.at/2 for multiple lookups on larger lists.
+    data =
+      Enum.map(rows, fn %{c: [%{v: _frame}, %{v: v}]} -> v end) |> Enum.sort() |> List.to_tuple()
+
+    q1 = percentile(data, length(rows), 0.25)
+    q3 = percentile(data, length(rows), 0.75)
+    iqr = q3 - q1
+    factor = 5
+
     payload =
       %{
         dataTable: %{
@@ -741,8 +767,10 @@ defmodule AppWeb.VideoLive.Form do
             %{id: "frame", label: "frame", type: "number"},
             %{id: chart_id, label: "mouse #{mouse_id} - #{chart_id} - #{type}", type: "number"}
           ],
-          rows: get_chart_rows(socket.assigns.annotations, mouse_id, chart_id, type)
-        }
+          rows: rows
+        },
+        lower_fence: q1 - factor * iqr,
+        upper_fence: q3 + factor * iqr
       }
 
     push_event(socket, "setupChart", payload)

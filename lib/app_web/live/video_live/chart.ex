@@ -67,6 +67,8 @@ defmodule AppWeb.VideoLive.Chart do
           },
 
           setupChart: function(reply) {
+            this.shadeMin = reply.lower_fence
+            this.shadeMax = reply.upper_fence
             this.dataTable = new google.visualization.DataTable(reply.dataTable, 0.6)
             this.dataTable.sort({column: 0, asc: true})
             this.dashboard.draw(this.dataTable)
@@ -89,8 +91,8 @@ defmodule AppWeb.VideoLive.Chart do
           },
 
           drawShade: function() {
-            const shadeMin = -17.74
-            const shadeMax = 17.73
+            const shadeMin = this.shadeMin
+            const shadeMax = this.shadeMax
             const shade = new google.visualization.DataTable();
             shade.addColumn('number', 'x');
             shade.addColumn('number', 'low');
