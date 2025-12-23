@@ -24,7 +24,7 @@ defmodule AppWeb.VideoLive.BehaviorTable do
             <.th class="text-right">time</.th>
             <.th class="text-right">mouse</.th>
             <.th class="text-right">behavior</.th>
-            <.th class="text-right">start/stop</.th>
+            <.th class="text-right">event</.th>
             <.th class="text-right"></.th>
           </.tr>
         </.thead>
@@ -81,7 +81,7 @@ defmodule AppWeb.VideoLive.BehaviorTable do
               <.th class="text-right w-1/10">time</.th>
               <.th class="text-right w-1/10">mouse</.th>
               <.th class="text-right w-1/10">behavior</.th>
-              <.th class="text-right w-1/10">start/stop</.th>
+              <.th class="text-right w-1/10">event</.th>
               <.th class="text-right w-1/10"></.th>
             </.tr>
           </tfoot>
@@ -93,7 +93,7 @@ defmodule AppWeb.VideoLive.BehaviorTable do
 
   defp behavior_form(assigns) do
     ~H"""
-    <.td class="text-right" id="behavior-annotation-form">
+    <.td class="text-right" id="behavior-annotation-form" colspan="2">
       <.form
         for={@edit_annotation_form}
         id="edit-behavior-annotation-form"
@@ -111,7 +111,7 @@ defmodule AppWeb.VideoLive.BehaviorTable do
         field={@edit_annotation_form[:frame]}
       />
     </.td>
-    <.td class="text-right">
+    <.td :if={false} class="text-right">
       <%= if @edit_annotation_form[:frame].value do %>
         {Time.from_seconds_after_midnight(Integer.floor_div(@edit_annotation_form[:frame].value, 15))}
       <% else %>
