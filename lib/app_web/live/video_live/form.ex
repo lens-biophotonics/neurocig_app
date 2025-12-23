@@ -18,7 +18,8 @@ defmodule AppWeb.VideoLive.Form do
           "bb_center_x_speed",
           "bb_center_y_speed",
           "bb_center_r_speed",
-          "bb_center_theta_speed"
+          "bb_center_theta_speed",
+          "body_length_speed"
         ]
       )
 
