@@ -786,7 +786,9 @@ defmodule AppWeb.VideoLive.Form do
             frame_map[mouse_id]
 
           :corrected ->
-            Enum.find(frame_map, fn {_k, x} -> x.new_mouse_id == mouse_id end) |> elem(1)
+            if found = Enum.find(frame_map, fn {_k, x} -> x.new_mouse_id == mouse_id end) do
+              elem(found, 1)
+            end
         end
 
       v = (found_ann && found_ann.charts[chart_id]) || nil
