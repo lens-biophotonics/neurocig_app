@@ -88,4 +88,48 @@ defmodule App.Annotations do
         %{}
     end
   end
+
+  def reset_corrections(annotations) do
+    Enum.reduce(Map.keys(annotations), annotations, fn frame, annotations ->
+      Enum.reduce(Map.keys(annotations[frame]), annotations, fn mouse_id, annotations ->
+        update_in(annotations[frame][mouse_id], fn ann -> %{ann | new_mouse_id: ann.mouse_id} end)
+      end)
+    end)
+  end
+
+  def apply_corrections_to_annotations(corrections, annotations) do
+    annotations = reset_corrections(annotations)
+    Enum.reduce(corrections, annotations, &apply_correction/2)
+  end
+
+  defp apply_correction(corr, annotations) do
+    Enum.reduce(
+      Map.keys(annotations) |> Enum.filter(&(&1 >= corr.frame)),
+      annotations,
+      fn frame, acc ->
+        if Map.has_key?(acc, frame) and Map.has_key?(acc[frame], corr.mouse_from) and
+             Map.has_key?(acc[frame], corr.mouse_to) do
+          {_, found_from} =
+            Enum.find(acc[frame], fn {_m_id, ann} -> ann.new_mouse_id == corr.mouse_from end)
+
+          {_, found_to} =
+            Enum.find(acc[frame], fn {_m_id, ann} -> ann.new_mouse_id == corr.mouse_to end)
+
+          acc =
+            update_in(acc[frame][found_from.mouse_id], fn ann ->
+              %{ann | new_mouse_id: corr.mouse_to}
+            end)
+
+          acc =
+            update_in(acc[frame][found_to.mouse_id], fn ann ->
+              %{ann | new_mouse_id: corr.mouse_from}
+            end)
+
+          acc
+        else
+          acc
+        end
+      end
+    )
+  end
 end
