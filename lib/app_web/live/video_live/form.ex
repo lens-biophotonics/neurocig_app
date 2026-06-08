@@ -786,8 +786,9 @@ defmodule AppWeb.VideoLive.Form do
             frame_map[mouse_id]
 
           :corrected ->
-            if found = Enum.find(frame_map, fn {_k, x} -> x.new_mouse_id == mouse_id end) do
-              elem(found, 1)
+            case Enum.find(frame_map, fn {_k, x} -> x.new_mouse_id == mouse_id end) do
+              found when is_tuple(found) -> elem(found, 1)
+              _ -> nil
             end
         end
 
