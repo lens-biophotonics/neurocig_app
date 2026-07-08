@@ -191,7 +191,12 @@ defmodule AppWeb.VideoLive.Form do
             </.tab_content>
             <.tab
               id="behavior-tab"
-              title="Behavior annotations"
+              title={
+                if(@predicted_annotations == [],
+                  do: "Behavior annotations",
+                  else: "Predicted behaviors"
+                )
+              }
               type="radio"
               name="tabs"
               phx-click={
@@ -199,7 +204,7 @@ defmodule AppWeb.VideoLive.Form do
               }
             />
             <.tab_content>
-              <div class="flex justify-center p-4">
+              <div :if={@predicted_annotations == []} class="flex justify-center p-4">
                 <.button
                   type="button"
                   color="primary"
@@ -209,14 +214,21 @@ defmodule AppWeb.VideoLive.Form do
                   New behavior annotation
                 </.button>
               </div>
+              <div :if={@predicted_annotations != []} class="flex justify-center p-4">
+                <div class="text-sm text-gray-500">
+                  Showing predicted annotations. Manual annotations are not editable when predictions are available.
+                </div>
+              </div>
               <div class="h-170 overflow-y-auto">
                 <.live_component
+                  :if={@predicted_annotations == []}
                   id="behavior-annotations-table"
                   module={AppWeb.VideoLive.BehaviorTable}
                   frame={@frame}
                   maxframe={@maxframe}
                   video={@video}
                   annotations={@behavior_annotations}
+                  predicted_annotations={@predicted_annotations}
                   notify_changed={fn _ -> send(self(), :behavior_annotations_changed) end}
                 />
               </div>
@@ -334,6 +346,7 @@ defmodule AppWeb.VideoLive.Form do
        annotations: nil,
        corrections: [],
        behavior_annotations: [],
+       predicted_annotations: [],
        frame: nil,
        video: nil,
        maxframe: nil,
@@ -457,12 +470,14 @@ defmodule AppWeb.VideoLive.Form do
     if video.id != video_id do
       video = Videos.get_video!(video_id)
       corrections = Corrections.list_corrections_by_video(video)
+      predicted_annotations = Behavior.load_predicted(video)
 
       socket
       |> assign(
         video: video,
         corrections: corrections,
-        loading: true
+        loading: true,
+        predicted_annotations: predicted_annotations
       )
       |> assign_behavior_annotations()
       |> start_async(:my_async_assigns, fn ->
@@ -497,8 +512,6 @@ defmodule AppWeb.VideoLive.Form do
 
     socket
     |> assign(corrections: corrections)
-  end
-
   end
 
   defp assign_behavior_annotations(socket) do
@@ -553,7 +566,11 @@ defmodule AppWeb.VideoLive.Form do
   end
 
   defp setup_timeline(socket) do
-    annotations = socket.assigns.behavior_annotations || []
+    manual_annotations = socket.assigns.behavior_annotations || []
+    predicted_annotations = socket.assigns.predicted_annotations || []
+
+    annotations =
+      if predicted_annotations != [], do: predicted_annotations, else: manual_annotations
 
     # full horizontal axis length in frames (fallback to 13500)
     full_length_frames = socket.assigns.maxframe || 13_500

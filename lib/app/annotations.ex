@@ -132,4 +132,53 @@ defmodule App.Annotations do
       end
     )
   end
+
+  def export_annotations(annotations, file_name) do
+    csv_content =
+      ([
+         [
+           "frame",
+           "mouse_id",
+           "new_mouse_id",
+           "bb_x1",
+           "bb_y1",
+           "bb_x2",
+           "bb_y2",
+           "nose_x",
+           "nose_y",
+           "earL_x",
+           "earL_y",
+           "earR_x",
+           "earR_y",
+           "tailB_x",
+           "tailB_y"
+         ]
+       ] ++
+         Enum.flat_map(Enum.sort(annotations), fn {frame, mice} ->
+           Enum.map(Enum.sort(mice), fn {mouse_id, ann} ->
+             [
+               frame,
+               mouse_id,
+               ann.new_mouse_id,
+               ann.bb_x1,
+               ann.bb_y1,
+               ann.bb_x2,
+               ann.bb_y2,
+               ann.nose_x,
+               ann.nose_y,
+               ann.earL_x,
+               ann.earL_y,
+               ann.earR_x,
+               ann.earR_y,
+               ann.tailB_x,
+               ann.tailB_y
+             ]
+           end)
+         end))
+      |> Enum.map(fn row -> Enum.join(row, ",") end)
+      |> Enum.join("\n")
+
+    File.write(file_name, csv_content)
+    annotations
+  end
 end

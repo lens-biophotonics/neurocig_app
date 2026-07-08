@@ -11,9 +11,16 @@ defmodule AppWeb.VideoLive.BehaviorTable do
 
   @impl Phoenix.LiveComponent
   def render(assigns) do
+    assigns =
+      if assigns.predicted_annotations != [] do
+        assign(assigns, anns: assigns.predicted_annotations)
+      else
+        assign(assigns, anns: assigns.annotations)
+      end
+
     ~H"""
     <div id={@id}>
-      <.table :if={@annotations} class="table-auto">
+      <.table :if={@anns} class="table-auto">
         <.thead>
           <.tr>
             <.th class="text-right">frame</.th>
@@ -25,7 +32,7 @@ defmodule AppWeb.VideoLive.BehaviorTable do
           </.tr>
         </.thead>
         <.tbody>
-          <.tr :for={ann <- @annotations}>
+          <.tr :for={ann <- @anns}>
             <%= if @edit_annotation && @edit_annotation.id == ann.id do %>
               {behavior_form(assigns)}
             <% else %>
@@ -39,7 +46,7 @@ defmodule AppWeb.VideoLive.BehaviorTable do
               <.td class="text-right">{ann.behavior}</.td>
               <.td class="text-right">{ann.start_stop}</.td>
               <.td class="text-right flex gap-1">
-                <.tooltip text="edit">
+                <.tooltip :if={ann.id} text="edit">
                   <.button
                     type="button"
                     phx-click="edit_annotation"
@@ -50,7 +57,7 @@ defmodule AppWeb.VideoLive.BehaviorTable do
                     <.icon name="hero-pencil-square" class="w-5 h-5" />
                   </.button>
                 </.tooltip>
-                <.tooltip text="delete">
+                <.tooltip :if={ann.id} text="delete">
                   <.button
                     type="button"
                     color="error"

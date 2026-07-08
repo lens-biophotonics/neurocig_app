@@ -206,4 +206,88 @@ defmodule App.Behavior do
   def change_type_string(%TypeString{} = type_string, attrs \\ %{}) do
     TypeString.changeset(type_string, attrs)
   end
+
+  def export_behavior_annotations(annotations, file_name) do
+    csv_content =
+      ([
+         [
+           "frame",
+           "mouse_id",
+           "behavior",
+           "start_stop"
+         ]
+       ] ++
+         Enum.map(Enum.sort_by(annotations, &{&1.frame, &1.mouse_id}), fn ann ->
+           [
+             ann.frame,
+             ann.mouse_id,
+             ann.behavior,
+             ann.start_stop
+           ]
+         end))
+      |> Enum.map(fn row -> Enum.join(row, ",") end)
+      |> Enum.join("\n")
+
+    File.write(file_name, csv_content)
+    annotations
+  end
+
+  def load_predicted(%Video{} = video) do
+    case File.read(predicted_json_fname(video)) do
+      {:ok, content} ->
+        json = JSON.decode!(content)
+        parse_predicted_annotations(json, video)
+
+      {:error, _} ->
+        []
+    end
+  end
+
+  def has_predicted?(%Video{} = video) do
+    File.exists?(predicted_json_fname(video))
+  end
+
+  defp predicted_json_fname(%Video{} = video) do
+    Path.join([
+      Application.get_env(:app, :neurocig)[:charts_path],
+      "/csv/predicted_behavior_annotations_video_#{video.id}.json"
+    ])
+  end
+
+  defp parse_predicted_annotations(json, video) do
+    Enum.map(json, fn {k, v} ->
+      {String.to_integer(k), Map.new(Enum.map(v, fn {kk, vv} -> {String.to_integer(kk), vv} end))}
+    end)
+    |> Map.new()
+    |> then(fn data ->
+      for mouse_id <- 1..5 do
+        data
+        |> Enum.map(fn {frame, v} -> {frame, v[mouse_id]["predicted"]} end)
+        |> Enum.sort_by(&elem(&1, 0))
+        |> Enum.chunk_by(fn {_frame, behavior} -> behavior end)
+        |> Enum.flat_map(fn chunk ->
+          {first_frame, behavior} = List.first(chunk)
+          {last_frame, _} = List.last(chunk)
+
+          [
+            %Annotation{
+              video_id: video.id,
+              frame: first_frame,
+              mouse_id: mouse_id,
+              behavior: behavior,
+              start_stop: "start"
+            },
+            %Annotation{
+              video_id: video.id,
+              frame: last_frame,
+              mouse_id: mouse_id,
+              behavior: behavior,
+              start_stop: "stop"
+            }
+          ]
+        end)
+      end
+      |> List.flatten()
+    end)
+  end
 end
