@@ -243,6 +243,22 @@ defmodule App.Behavior do
     end
   end
 
+  def load_predicted_raw(%Video{} = video) do
+    case File.read(predicted_json_fname(video)) do
+      {:ok, content} ->
+        json = JSON.decode!(content)
+
+        parse_predicted_annotations_raw(json, video)
+        |> Enum.map(fn {k, v} ->
+          {k, Enum.map(v, fn {kk, vv} -> {kk, vv["predicted"]} end) |> Map.new()}
+        end)
+        |> Map.new()
+
+      {:error, _} ->
+        []
+    end
+  end
+
   def has_predicted?(%Video{} = video) do
     File.exists?(predicted_json_fname(video))
   end
@@ -254,11 +270,15 @@ defmodule App.Behavior do
     ])
   end
 
-  defp parse_predicted_annotations(json, video) do
+  defp parse_predicted_annotations_raw(json, video) do
     Enum.map(json, fn {k, v} ->
       {String.to_integer(k), Map.new(Enum.map(v, fn {kk, vv} -> {String.to_integer(kk), vv} end))}
     end)
     |> Map.new()
+  end
+
+  defp parse_predicted_annotations(json, video) do
+    parse_predicted_annotations_raw(json, video)
     |> then(fn data ->
       for mouse_id <- 1..5 do
         data

@@ -215,8 +215,16 @@ defmodule AppWeb.VideoLive.Form do
                 </.button>
               </div>
               <div :if={@predicted_annotations != []} class="flex justify-center p-4">
-                <div class="text-sm text-gray-500">
-                  Showing predicted annotations. Manual annotations are not editable when predictions are available.
+                <div class="text">
+                  <ul>
+                    <li><b>Frame</b>: {@frame}</li>
+                    <li>&nbsp;</li>
+                    <li><b>Mouse 1</b>: {@predicted_annotations_raw[@frame][1]}</li>
+                    <li><b>Mouse 2</b>: {@predicted_annotations_raw[@frame][2]}</li>
+                    <li><b>Mouse 3</b>: {@predicted_annotations_raw[@frame][3]}</li>
+                    <li><b>Mouse 4</b>: {@predicted_annotations_raw[@frame][4]}</li>
+                    <li><b>Mouse 5</b>: {@predicted_annotations_raw[@frame][5]}</li>
+                  </ul>
                 </div>
               </div>
               <div class="h-170 overflow-y-auto">
@@ -471,13 +479,15 @@ defmodule AppWeb.VideoLive.Form do
       video = Videos.get_video!(video_id)
       corrections = Corrections.list_corrections_by_video(video)
       predicted_annotations = Behavior.load_predicted(video)
+      predicted_annotations_raw = Behavior.load_predicted_raw(video)
 
       socket
       |> assign(
         video: video,
         corrections: corrections,
         loading: true,
-        predicted_annotations: predicted_annotations
+        predicted_annotations: predicted_annotations,
+        predicted_annotations_raw: predicted_annotations_raw
       )
       |> assign_behavior_annotations()
       |> start_async(:my_async_assigns, fn ->
