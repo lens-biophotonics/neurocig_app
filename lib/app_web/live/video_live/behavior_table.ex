@@ -11,12 +11,7 @@ defmodule AppWeb.VideoLive.BehaviorTable do
 
   @impl Phoenix.LiveComponent
   def render(assigns) do
-    assigns =
-      if assigns.predicted_annotations != [] do
-        assign(assigns, anns: assigns.predicted_annotations)
-      else
-        assign(assigns, anns: assigns.annotations)
-      end
+    assigns = assign(assigns, anns: assigns.annotations)
 
     ~H"""
     <div id={@id}>

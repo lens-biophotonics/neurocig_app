@@ -177,7 +177,7 @@ defmodule AppWeb.VideoLive.Form do
                   New correction
                 </.button>
               </div>
-              <div class="h-170 overflow-y-auto">
+              <div class="h-140 overflow-y-auto">
                 <.live_component
                   id="corrections-table"
                   module={AppWeb.VideoLive.CorrectionTable}
@@ -191,12 +191,7 @@ defmodule AppWeb.VideoLive.Form do
             </.tab_content>
             <.tab
               id="behavior-tab"
-              title={
-                if(@predicted_annotations == [],
-                  do: "Behavior annotations",
-                  else: "Predicted behaviors"
-                )
-              }
+              title="Behaviors"
               type="radio"
               name="tabs"
               phx-click={
@@ -204,18 +199,10 @@ defmodule AppWeb.VideoLive.Form do
               }
             />
             <.tab_content>
-              <div :if={@predicted_annotations == []} class="flex justify-center p-4">
-                <.button
-                  type="button"
-                  color="primary"
-                  phx-click="new_annotation"
-                  phx-target="#behavior-annotations-table"
-                >
-                  New behavior annotation
-                </.button>
-              </div>
               <div :if={@predicted_annotations != []} class="flex justify-center p-4">
                 <div class="text">
+                  <div class="text-center"><b>Predicted</b></div>
+                  <br />
                   <ul>
                     <li><b>Frame</b>: {@frame}</li>
                     <li>&nbsp;</li>
@@ -227,16 +214,26 @@ defmodule AppWeb.VideoLive.Form do
                   </ul>
                 </div>
               </div>
-              <div class="h-170 overflow-y-auto">
+              <div class="text-center"><b>Manual</b></div>
+
+              <div class="flex justify-center p-4">
+                <.button
+                  type="button"
+                  color="primary"
+                  phx-click="new_annotation"
+                  phx-target="#behavior-annotations-table"
+                >
+                  New behavior annotation
+                </.button>
+              </div>
+              <div class="h-120 overflow-y-auto">
                 <.live_component
-                  :if={@predicted_annotations == []}
                   id="behavior-annotations-table"
                   module={AppWeb.VideoLive.BehaviorTable}
                   frame={@frame}
                   maxframe={@maxframe}
                   video={@video}
                   annotations={@behavior_annotations}
-                  predicted_annotations={@predicted_annotations}
                   notify_changed={fn _ -> send(self(), :behavior_annotations_changed) end}
                 />
               </div>
@@ -248,11 +245,22 @@ defmodule AppWeb.VideoLive.Form do
         id="chart"
         module={AppWeb.VideoLive.Chart}
       />
-      <.live_component
-        id="timeline"
-        module={AppWeb.VideoLive.Timeline}
-        class="hidden"
-      />
+      <div id="timeline" class="hidden">
+        <div :if={@behavior_annotations != []} class="mb-2">
+          <b>Manual annotations</b>
+          <.live_component
+            id="timeline-manual"
+            module={AppWeb.VideoLive.Timeline}
+          />
+        </div>
+        <div :if={@predicted_annotations != []}>
+          <b>Predicted behaviors</b>
+          <.live_component
+            id="timeline-predicted"
+            module={AppWeb.VideoLive.Timeline}
+          />
+        </div>
+      </div>
     </Layouts.app>
     """
   end
@@ -383,7 +391,7 @@ defmodule AppWeb.VideoLive.Form do
 
   @impl Phoenix.LiveView
   def handle_info(:behavior_annotations_changed, socket) do
-    socket = socket |> assign_behavior_annotations() |> setup_timeline()
+    socket = socket |> assign_behavior_annotations() |> setup_manual_timeline()
     {:noreply, socket}
   end
 
@@ -576,12 +584,20 @@ defmodule AppWeb.VideoLive.Form do
   end
 
   defp setup_timeline(socket) do
-    manual_annotations = socket.assigns.behavior_annotations || []
-    predicted_annotations = socket.assigns.predicted_annotations || []
+    socket
+    |> setup_manual_timeline()
+    |> setup_predicted_timeline()
+  end
 
-    annotations =
-      if predicted_annotations != [], do: predicted_annotations, else: manual_annotations
+  defp setup_manual_timeline(socket) do
+    push_setupTimeline(socket, "timeline-manual", socket.assigns.behavior_annotations || [])
+  end
 
+  defp setup_predicted_timeline(socket) do
+    push_setupTimeline(socket, "timeline-predicted", socket.assigns.predicted_annotations || [])
+  end
+
+  defp push_setupTimeline(socket, id, annotations) do
     # full horizontal axis length in frames (fallback to 13500)
     full_length_frames = socket.assigns.maxframe || 13_500
     full_length = frame_to_ms(full_length_frames)
@@ -713,7 +729,8 @@ defmodule AppWeb.VideoLive.Form do
         ],
         rows: rows
       },
-      full_length: full_length
+      full_length: full_length,
+      id: id
     }
 
     push_event(socket, "setupTimeline", payload)

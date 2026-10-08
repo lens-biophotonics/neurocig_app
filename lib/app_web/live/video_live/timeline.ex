@@ -31,6 +31,9 @@ defmodule AppWeb.VideoLive.Timeline do
 
           setupTimeline: function(reply) {
             // reply.dataTable should include cols and rows already prepared server-side
+            if(reply.id != this.el.id) {
+              return;
+            }
             var timeZoneOffset = new Date(0).getHours() * 3600 * 1000
             dataTable = new google.visualization.DataTable(reply.dataTable, 0.6)
 
