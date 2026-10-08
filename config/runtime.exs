@@ -25,6 +25,10 @@ config :app, :neurocig,
   charts_path: System.get_env("NEUROCIG_CHARTS_PATH"),
   video_serve_path: System.get_env("NEUROCIG_VIDEOS_SERVE_AT_PATH") || "/videos"
 
+if config_env() == :dev do
+  System.put_env("PLUG_EDITOR", "vscode://file/__FILE__:__LINE__")
+end
+
 if config_env() == :prod do
   database_url =
     System.get_env("DATABASE_URL") ||
